@@ -1,11 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Display `pristinelearningofficial@gmail.com` as the official contact email across the platform wherever contact or support information is shown.
+**Goal:** Update the Premium subscription tier on the SubscriptionPackagesPage to display "Unlimited Sessions" as a key benefit.
 
 **Planned changes:**
-- Add `pristinelearningofficial@gmail.com` as a clickable `mailto:` link in the site footer.
-- Add the email as a clickable `mailto:` link in any About or Contact sections on public pages.
-- Add the email as a clickable `mailto:` link in any support or help reference areas in dashboards or other pages.
+- Add "Unlimited Sessions" as a line item in the Premium plan's feature list on the SubscriptionPackagesPage
+- Ensure "Unlimited Sessions" appears in the plan card, any comparison table, and any confirmation or summary UI on that page
+- Keep Basic and Standard tiers showing their fixed session counts unchanged
 
-**User-visible outcome:** Users can see and click the official contact email anywhere contact or support information appears, which opens their default mail client pre-addressed to `pristinelearningofficial@gmail.com`.
+**User-visible outcome:** Users visiting the SubscriptionPackagesPage will see "Unlimited Sessions" clearly listed as a benefit under the Premium plan, distinguishing it from the other tiers.

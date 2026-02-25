@@ -1,161 +1,200 @@
 import { useState } from 'react';
-import { Link, useNavigate } from '@tanstack/react-router';
-import { Menu, X, BookOpen, Bell, ChevronDown, LogOut, User, LayoutDashboard } from 'lucide-react';
+import { useNavigate, useLocation } from '@tanstack/react-router';
+import { Menu, X, GraduationCap, Play, Globe } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { useQueryClient } from '@tanstack/react-query';
-import { userProfileStore } from '../lib/localStore';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuSeparator, DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { useLanguage } from '../i18n/LanguageContext';
+import type { Language } from '../i18n/LanguageContext';
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { identity, login, clear, isLoggingIn } = useInternetIdentity();
-  const qc = useQueryClient();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login, clear, loginStatus, identity } = useInternetIdentity();
+  const queryClient = useQueryClient();
+  const { t, currentLanguage, setLanguage } = useLanguage();
 
   const isAuthenticated = !!identity;
-  const principalId = identity?.getPrincipal().toString() || '';
-  const profile = principalId ? userProfileStore.get(principalId) : null;
+  const isLoggingIn = loginStatus === 'logging-in';
 
-  const handleLogout = async () => {
-    await clear();
-    qc.clear();
-    navigate({ to: '/' });
+  const handleAuth = async () => {
+    if (isAuthenticated) {
+      await clear();
+      queryClient.clear();
+      navigate({ to: '/' });
+    } else {
+      try {
+        await login();
+      } catch (error: unknown) {
+        const err = error as Error;
+        if (err?.message === 'User is already authenticated') {
+          await clear();
+          setTimeout(() => login(), 300);
+        }
+      }
+    }
   };
 
-  const getDashboardPath = () => {
-    if (!profile) return '/student';
-    if (profile.role === 'admin') return '/admin';
-    if (profile.role === 'teacher') return '/teacher';
-    return '/student';
+  const toggleLanguage = () => {
+    const next: Language = currentLanguage === 'en' ? 'ta' : 'en';
+    setLanguage(next);
   };
 
   const navLinks = [
-    { label: 'Home', to: '/' },
-    { label: 'Find Teachers', to: '/search' },
-    { label: 'Blog', to: '/blog' },
-    { label: 'Subscriptions', to: '/subscriptions' },
+    { label: t('navbar.findTeacher'), path: '/search' },
+    { label: t('navbar.aiAssistant'), path: '/ai-assistant' },
+    { label: t('navbar.tour'), path: '/demo', icon: <Play className="w-3.5 h-3.5" /> },
+    { label: t('navbar.blog'), path: '/blog' },
   ];
 
+  const isActive = (path: string) => location.pathname === path;
+
   return (
-    <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-border shadow-xs">
+    <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b border-border shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 shrink-0">
-            <img
-              src="/assets/generated/pristine-logo.dim_400x120.png"
-              alt="Pristine Learning"
-              className="h-9 w-auto"
-              onError={(e) => {
-                const t = e.currentTarget;
-                t.style.display = 'none';
-                const sibling = t.nextElementSibling as HTMLElement;
-                if (sibling) sibling.style.display = 'flex';
-              }}
-            />
-            <span className="hidden items-center gap-1.5 text-xl font-display font-bold text-primary">
-              <BookOpen className="w-6 h-6 text-accent" />
-              Pristine Learning
-            </span>
-          </Link>
+          <button
+            onClick={() => navigate({ to: '/' })}
+            className="flex items-center gap-2 font-bold text-xl text-primary hover:opacity-80 transition-opacity"
+          >
+            <GraduationCap className="w-7 h-7" />
+            <span className="hidden sm:block">Pristine Learning</span>
+          </button>
 
           {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-1">
-            {navLinks.map(l => (
-              <Link
-                key={l.to}
-                to={l.to}
-                className="px-3 py-2 text-sm font-medium text-foreground/70 hover:text-primary rounded-md transition-colors"
-                activeProps={{ className: 'text-primary font-semibold' }}
+          <nav className="hidden md:flex items-center gap-1">
+            {navLinks.map((link) => (
+              <button
+                key={link.path}
+                onClick={() => navigate({ to: link.path })}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  isActive(link.path)
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                }`}
               >
-                {l.label}
-              </Link>
+                {link.icon}
+                {link.label}
+              </button>
             ))}
-          </div>
+          </nav>
 
-          {/* Auth */}
-          <div className="hidden md:flex items-center gap-3">
-            {isAuthenticated ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-2 text-sm">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-xs">
-                      {profile?.name?.charAt(0)?.toUpperCase() || 'U'}
-                    </div>
-                    <span className="max-w-[120px] truncate">{profile?.name || 'User'}</span>
-                    <ChevronDown className="w-4 h-4 opacity-50" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={() => navigate({ to: getDashboardPath() })}>
-                    <LayoutDashboard className="w-4 h-4 mr-2" /> Dashboard
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="text-destructive">
-                    <LogOut className="w-4 h-4 mr-2" /> Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Button onClick={login} disabled={isLoggingIn} className="btn-primary">
-                {isLoggingIn ? 'Logging in…' : 'Login / Sign Up'}
+          {/* Desktop Right Actions */}
+          <div className="hidden md:flex items-center gap-2">
+            {/* Language Switcher */}
+            <button
+              onClick={toggleLanguage}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border border-border hover:bg-accent transition-colors"
+              title={currentLanguage === 'en' ? 'Switch to Tamil' : 'Switch to English'}
+            >
+              <Globe className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="text-foreground">
+                {currentLanguage === 'en' ? 'EN' : 'தமிழ்'}
+              </span>
+            </button>
+
+            {isAuthenticated && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate({ to: '/student-dashboard' })}
+              >
+                {t('navbar.dashboard')}
               </Button>
             )}
+
+            <Button
+              size="sm"
+              variant={isAuthenticated ? 'outline' : 'default'}
+              onClick={handleAuth}
+              disabled={isLoggingIn}
+            >
+              {isLoggingIn
+                ? `${t('navbar.login')}...`
+                : isAuthenticated
+                ? t('navbar.logout')
+                : t('navbar.login')}
+            </Button>
           </div>
 
-          {/* Mobile toggle */}
-          <button
-            className="md:hidden p-2 rounded-md text-foreground/70 hover:text-primary"
-            onClick={() => setMobileOpen(!mobileOpen)}
-          >
-            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+          {/* Mobile Menu Toggle */}
+          <div className="flex md:hidden items-center gap-2">
+            {/* Language Switcher Mobile */}
+            <button
+              onClick={toggleLanguage}
+              className="flex items-center gap-1 px-2 py-1.5 rounded-md text-sm font-medium border border-border hover:bg-accent transition-colors"
+            >
+              <Globe className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="text-foreground text-xs">
+                {currentLanguage === 'en' ? 'EN' : 'தமிழ்'}
+              </span>
+            </button>
+            <button
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            >
+              {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Mobile menu */}
+      {/* Mobile Menu */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-border bg-white animate-fade-in">
+        <div className="md:hidden border-t border-border bg-background">
           <div className="px-4 py-3 space-y-1">
-            {navLinks.map(l => (
-              <Link
-                key={l.to}
-                to={l.to}
-                className="block px-3 py-2 text-sm font-medium text-foreground/70 hover:text-primary rounded-md"
-                onClick={() => setMobileOpen(false)}
+            {navLinks.map((link) => (
+              <button
+                key={link.path}
+                onClick={() => {
+                  navigate({ to: link.path });
+                  setMobileOpen(false);
+                }}
+                className={`flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  isActive(link.path)
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                }`}
               >
-                {l.label}
-              </Link>
+                {link.icon}
+                {link.label}
+              </button>
             ))}
-            <div className="pt-2 border-t border-border">
-              {isAuthenticated ? (
-                <>
-                  <button
-                    onClick={() => { navigate({ to: getDashboardPath() }); setMobileOpen(false); }}
-                    className="block w-full text-left px-3 py-2 text-sm font-medium text-foreground/70 hover:text-primary rounded-md"
-                  >
-                    Dashboard
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="block w-full text-left px-3 py-2 text-sm font-medium text-destructive rounded-md"
-                  >
-                    Logout
-                  </button>
-                </>
-              ) : (
-                <Button onClick={login} disabled={isLoggingIn} className="w-full btn-primary">
-                  {isLoggingIn ? 'Logging in…' : 'Login / Sign Up'}
-                </Button>
+
+            <div className="pt-2 border-t border-border space-y-1">
+              {isAuthenticated && (
+                <button
+                  onClick={() => {
+                    navigate({ to: '/student-dashboard' });
+                    setMobileOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                >
+                  {t('navbar.dashboard')}
+                </button>
               )}
+              <Button
+                size="sm"
+                variant={isAuthenticated ? 'outline' : 'default'}
+                onClick={() => {
+                  handleAuth();
+                  setMobileOpen(false);
+                }}
+                disabled={isLoggingIn}
+                className="w-full"
+              >
+                {isLoggingIn
+                  ? `${t('navbar.login')}...`
+                  : isAuthenticated
+                  ? t('navbar.logout')
+                  : t('navbar.login')}
+              </Button>
             </div>
           </div>
         </div>
       )}
-    </nav>
+    </header>
   );
 }

@@ -1,47 +1,23 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Display official contact email across the platform",
+  "title": "Add 'Unlimited Sessions' display to Premium subscription tier",
   "requirements": [
     {
-      "id": "REQ-20",
-      "summary": "Display 'pristinelearningofficial@gmail.com' as a clickable mailto: link in the site footer, About/Contact sections, and support reference areas across the platform",
+      "id": "REQ-34",
+      "summary": "Update Premium subscription tier on SubscriptionPackagesPage to prominently display 'Unlimited Sessions' as a key benefit, distinguishing it from Basic and Standard tiers with fixed session counts",
       "acceptanceCriteria": [
-        "The email 'pristinelearningofficial@gmail.com' appears in the site footer as a clickable mailto: link.",
-        "Any About or Contact section on the homepage or other public pages shows the email as a mailto: link.",
-        "Any support or help references in dashboards or other pages that mention contact information display this email as a mailto: link.",
-        "Clicking the email link opens the user's default mail client addressed to pristinelearningofficial@gmail.com."
+        "The Premium subscription plan card on SubscriptionPackagesPage displays 'Unlimited Sessions' (or equivalent phrasing) as a listed benefit.",
+        "Basic and Standard tiers continue to show their fixed session counts (not 'unlimited').",
+        "The 'Unlimited Sessions' label is visually distinct and clearly readable within the plan card.",
+        "No other subscription tier incorrectly shows 'unlimited sessions'.",
+        "The page renders without errors and the premium plan badge/highlight remains intact."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/Footer.tsx",
-          "operation": "create",
-          "description": "Create a Footer component that displays the official contact email 'pristinelearningofficial@gmail.com' as a clickable mailto: link. Include platform branding, quick links, and contact information section. Style consistently with the teal/amber theme from index.css."
-        },
-        {
-          "path": "frontend/src/App.tsx",
+          "path": "frontend/src/pages/SubscriptionPackagesPage.tsx",
           "operation": "modify",
-          "description": "Import and wire the Footer component into the root application layout so it appears on all pages. Place the Footer component after the router outlet to ensure it displays consistently across all routes."
-        },
-        {
-          "path": "frontend/src/pages/Homepage.tsx",
-          "operation": "modify",
-          "description": "Add an About or Contact section to the homepage that includes the official contact email 'pristinelearningofficial@gmail.com' as a clickable mailto: link. Position this section near the bottom of the page, above where the Footer will render."
-        },
-        {
-          "path": "frontend/src/pages/StudentDashboard.tsx",
-          "operation": "modify",
-          "description": "Add a support or help reference section in the student dashboard that displays the official contact email 'pristinelearningofficial@gmail.com' as a clickable mailto: link. Include help text indicating students can reach out for support."
-        },
-        {
-          "path": "frontend/src/pages/TeacherDashboard.tsx",
-          "operation": "modify",
-          "description": "Add a support or help reference section in the teacher dashboard that displays the official contact email 'pristinelearningofficial@gmail.com' as a clickable mailto: link. Include help text indicating teachers can reach out for support."
-        },
-        {
-          "path": "frontend/src/pages/AdminDashboard.tsx",
-          "operation": "modify",
-          "description": "Add a support or help reference section in the admin dashboard that displays the official contact email 'pristinelearningofficial@gmail.com' as a clickable mailto: link. Include help text indicating admins can reach out for technical support."
+          "description": "Update the Premium subscription tier card to include 'Unlimited Sessions' as a displayed benefit. Modify the plan card's feature list to show 'Unlimited Sessions' for Premium tier while maintaining fixed session count displays (e.g., '10 Sessions', '30 Sessions') for Basic and Standard tiers. Ensure the text is visually distinct and prominent within the Premium plan card. Do not alter pricing, Stripe checkout flow, or session count enforcement logic. This is a display-only change to make the unlimited sessions benefit clear to users browsing subscription options."
         }
       ]
     }

@@ -2,15 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-display-pristinelearningofficial-gmail-com-as-the-official-contact-email-in-the-site-footer-about-contact-sections-and-any-support-reference-areas-across-the-platform-render-it-as-a-clickable-mailto-pristinelearningofficial-gmail-com-link-wherever-it-appears",
-      "featureTitle": "Display 'pristinelearningofficial@gmail.com' as the official contact email in the site footer, About/Contact sections, and any support reference areas across the platform. Render it as a clickable 'mailto:pristinelearningofficial@gmail.com' link wherever it appears.",
+      "featureId": "feature-on-the-subscriptionpackagespage-update-the-premium-subscription-tier-to-prominently-display-unlimited-sessions-as-a-key-benefit-the-feature-list-for-the-premium-plan-must-include-unlimited-sessions-as-a-line-item-clearly-distinguishing-it-from-the-basic-and-standard-tiers-which-show-a-fixed-session-count-this-text-must-be-visible-in-the-plan-card-any-comparison-table-and-any-confirmation-or-summary-ui-on-that-page",
+      "featureTitle": "On the SubscriptionPackagesPage, update the Premium subscription tier to prominently display 'Unlimited Sessions' as a key benefit. The feature list for the Premium plan must include 'Unlimited Sessions' as a line item, clearly distinguishing it from the Basic and Standard tiers which show a fixed session count. This text must be visible in the plan card, any comparison table, and any confirmation or summary UI on that page.",
       "files": [
-        "frontend/src/App.tsx",
-        "frontend/src/components/Footer.tsx",
-        "frontend/src/pages/AdminDashboard.tsx",
-        "frontend/src/pages/Homepage.tsx",
-        "frontend/src/pages/StudentDashboard.tsx",
-        "frontend/src/pages/TeacherDashboard.tsx"
+        "frontend/src/pages/SubscriptionPackagesPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -24,7 +19,7 @@
         "http-outcalls@3.0.0"
       ],
       "testIds": [
-        "REQ-20"
+        "REQ-34"
       ],
       "confidence": "high"
     }

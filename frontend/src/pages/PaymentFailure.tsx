@@ -1,71 +1,54 @@
+import React from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { useGetStripeSessionStatus } from '../hooks/useQueries';
-import { XCircle, RefreshCw, ArrowLeft, Loader2 } from 'lucide-react';
+import { XCircle, RefreshCw, Home, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 export default function PaymentFailure() {
   const navigate = useNavigate();
 
-  // Extract sessionId from URL query params
-  const search = typeof window !== 'undefined'
-    ? new URLSearchParams(window.location.search)
-    : new URLSearchParams();
-  const sessionId = search.get('session_id') || '';
-
-  const { data: sessionStatus, isLoading } = useGetStripeSessionStatus(sessionId);
-
-  const errorMessage =
-    sessionStatus?.__kind__ === 'failed'
-      ? sessionStatus.failed.error
-      : 'Your payment could not be processed. No charges were made.';
+  const params = new URLSearchParams(window.location.search);
+  const errorMessage = params.get('error') || 'Your payment was cancelled or could not be processed.';
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <div className="max-w-md w-full text-center">
-        {isLoading && sessionId ? (
-          <div className="space-y-4">
-            <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto" />
-            <p className="text-muted-foreground">Loading payment details…</p>
+      <Card className="max-w-md w-full text-center">
+        <CardHeader>
+          <div className="w-20 h-20 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center mx-auto mb-4">
+            <XCircle className="w-10 h-10 text-red-600 dark:text-red-400" />
           </div>
-        ) : (
-          <div className="bg-white rounded-2xl border border-border p-8 shadow-card space-y-5 animate-fade-in">
-            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto">
-              <XCircle className="w-11 h-11 text-red-500" />
-            </div>
-
-            <div>
-              <h1 className="font-display text-3xl font-bold text-foreground mb-2">
-                Payment Failed
-              </h1>
-              <p className="text-muted-foreground">{errorMessage}</p>
-            </div>
-
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
-              ❌ Your booking has not been confirmed. Please try again.
-            </div>
-
-            <div className="space-y-3 pt-2">
-              <Button
-                onClick={() => navigate({ to: '/search' })}
-                className="w-full btn-primary h-11 gap-2"
-              >
-                <RefreshCw className="w-4 h-4" /> Try Again
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => navigate({ to: '/' })}
-                className="w-full gap-2"
-              >
-                <ArrowLeft className="w-4 h-4" /> Back to Home
-              </Button>
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              If you believe this is an error, please contact our support team.
+          <CardTitle className="text-2xl text-red-700 dark:text-red-400">
+            Payment Failed
+          </CardTitle>
+          <CardDescription className="text-base mt-2">
+            {errorMessage}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="bg-muted rounded-lg p-4 text-sm text-muted-foreground">
+            <p>Your payment was not completed. No charges have been made to your account.</p>
+            <p className="mt-2">
+              If you believe this is an error, please try again or contact our support team.
             </p>
           </div>
-        )}
-      </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button onClick={() => navigate({ to: '/subscription-packages' })}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Try Again
+            </Button>
+            <Button variant="outline" onClick={() => navigate({ to: '/' })}>
+              <Home className="w-4 h-4 mr-2" />
+              Home
+            </Button>
+          </div>
+
+          <div className="pt-2 text-xs text-muted-foreground flex items-center justify-center gap-1">
+            <CreditCard className="w-3 h-3" />
+            <span>Payments are securely processed by Stripe</span>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

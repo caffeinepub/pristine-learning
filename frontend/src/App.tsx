@@ -1,10 +1,10 @@
-import { createRouter, RouterProvider, createRootRoute, createRoute, Outlet } from '@tanstack/react-router';
+import { RouterProvider, createRouter, createRoute, createRootRoute, Outlet } from '@tanstack/react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { InternetIdentityProvider } from './hooks/useInternetIdentity';
+import { ThemeProvider } from 'next-themes';
 import { Toaster } from '@/components/ui/sonner';
+import { LanguageProvider } from './i18n/LanguageContext';
+import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-
-// Pages
 import Homepage from './pages/Homepage';
 import TeacherSearchPage from './pages/TeacherSearchPage';
 import TeacherProfilePage from './pages/TeacherProfilePage';
@@ -12,79 +12,71 @@ import StudentDashboard from './pages/StudentDashboard';
 import TeacherDashboard from './pages/TeacherDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import AIStudyAssistantPage from './pages/AIStudyAssistantPage';
-import SessionRecordingsPage from './pages/SessionRecordingsPage';
-import TeacherWalletPage from './pages/TeacherWalletPage';
-import BlogListingPage from './pages/BlogListingPage';
-import BlogPostPage from './pages/BlogPostPage';
-import SubscriptionPackagesPage from './pages/SubscriptionPackagesPage';
+import DemoPage from './pages/DemoPage';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentFailure from './pages/PaymentFailure';
+import SubscriptionPackagesPage from './pages/SubscriptionPackagesPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { retry: 1, staleTime: 30_000 },
+    queries: {
+      retry: 2,
+      staleTime: 1000 * 60 * 5,
+    },
   },
 });
 
 function RootLayout() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <InternetIdentityProvider>
-        <div className="flex flex-col min-h-screen">
-          <div className="flex-1">
-            <Outlet />
-          </div>
-          <Footer />
-        </div>
-        <Toaster richColors position="top-right" />
-      </InternetIdentityProvider>
-    </QueryClientProvider>
+    <div className="min-h-screen flex flex-col bg-background text-foreground">
+      <Navbar />
+      <main className="flex-1">
+        <Outlet />
+      </main>
+      <Footer />
+      <Toaster />
+    </div>
   );
 }
 
-// Root route
-const rootRoute = createRootRoute({
-  component: RootLayout,
-});
+const rootRoute = createRootRoute({ component: RootLayout });
 
 const indexRoute = createRoute({ getParentRoute: () => rootRoute, path: '/', component: Homepage });
 const searchRoute = createRoute({ getParentRoute: () => rootRoute, path: '/search', component: TeacherSearchPage });
-const teacherProfileRoute = createRoute({ getParentRoute: () => rootRoute, path: '/teacher/$teacherId', component: TeacherProfilePage });
-const studentDashboardRoute = createRoute({ getParentRoute: () => rootRoute, path: '/student', component: StudentDashboard });
-const studentAIRoute = createRoute({ getParentRoute: () => rootRoute, path: '/student/ai-assistant', component: AIStudyAssistantPage });
-const studentRecordingsRoute = createRoute({ getParentRoute: () => rootRoute, path: '/student/recordings', component: SessionRecordingsPage });
-const teacherDashboardRoute = createRoute({ getParentRoute: () => rootRoute, path: '/teacher', component: TeacherDashboard });
-const teacherWalletRoute = createRoute({ getParentRoute: () => rootRoute, path: '/teacher/wallet', component: TeacherWalletPage });
-const adminDashboardRoute = createRoute({ getParentRoute: () => rootRoute, path: '/admin', component: AdminDashboard });
-const blogRoute = createRoute({ getParentRoute: () => rootRoute, path: '/blog', component: BlogListingPage });
-const blogPostRoute = createRoute({ getParentRoute: () => rootRoute, path: '/blog/$slug', component: BlogPostPage });
-const subscriptionsRoute = createRoute({ getParentRoute: () => rootRoute, path: '/subscriptions', component: SubscriptionPackagesPage });
+const profileRoute = createRoute({ getParentRoute: () => rootRoute, path: '/teacher/$id', component: TeacherProfilePage });
+const studentDashboardRoute = createRoute({ getParentRoute: () => rootRoute, path: '/student-dashboard', component: StudentDashboard });
+const teacherDashboardRoute = createRoute({ getParentRoute: () => rootRoute, path: '/teacher-dashboard', component: TeacherDashboard });
+const adminDashboardRoute = createRoute({ getParentRoute: () => rootRoute, path: '/admin-dashboard', component: AdminDashboard });
+const aiAssistantRoute = createRoute({ getParentRoute: () => rootRoute, path: '/ai-assistant', component: AIStudyAssistantPage });
+const demoRoute = createRoute({ getParentRoute: () => rootRoute, path: '/demo', component: DemoPage });
 const paymentSuccessRoute = createRoute({ getParentRoute: () => rootRoute, path: '/payment-success', component: PaymentSuccess });
 const paymentFailureRoute = createRoute({ getParentRoute: () => rootRoute, path: '/payment-failure', component: PaymentFailure });
+const subscriptionRoute = createRoute({ getParentRoute: () => rootRoute, path: '/subscriptions', component: SubscriptionPackagesPage });
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
   searchRoute,
-  teacherProfileRoute,
+  profileRoute,
   studentDashboardRoute,
-  studentAIRoute,
-  studentRecordingsRoute,
   teacherDashboardRoute,
-  teacherWalletRoute,
   adminDashboardRoute,
-  blogRoute,
-  blogPostRoute,
-  subscriptionsRoute,
+  aiAssistantRoute,
+  demoRoute,
   paymentSuccessRoute,
   paymentFailureRoute,
+  subscriptionRoute,
 ]);
 
 const router = createRouter({ routeTree });
 
-declare module '@tanstack/react-router' {
-  interface Register { router: typeof router }
-}
-
 export default function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <LanguageProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+          <RouterProvider router={router} />
+        </ThemeProvider>
+      </QueryClientProvider>
+    </LanguageProvider>
+  );
 }

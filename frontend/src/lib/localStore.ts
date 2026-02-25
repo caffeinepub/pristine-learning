@@ -86,7 +86,7 @@ export interface BlogPost {
 export interface SubscriptionPackage {
   id: string;
   name: string;
-  sessionsPerMonth: number;
+  sessionsPerMonth: number; // Use 9999 to represent unlimited
   price: number;
   features: string[];
 }
@@ -262,9 +262,21 @@ export const blogStore = {
 };
 
 // Subscription Packages
+// Version key — bump this whenever prices or package data change to force-reset cached packages
+const PACKAGES_VERSION = 'v3';
+
+function getPackagesWithVersionCheck(): SubscriptionPackage[] {
+  const storedVersion = localStorage.getItem('pl_sub_packages_version');
+  if (storedVersion !== PACKAGES_VERSION) {
+    // Package data has been updated; clear old cached packages so new seed data applies
+    localStorage.removeItem('pl_sub_packages');
+    localStorage.setItem('pl_sub_packages_version', PACKAGES_VERSION);
+  }
+  return getItem<SubscriptionPackage[]>('pl_sub_packages', SEED_PACKAGES);
+}
+
 export const subscriptionStore = {
-  getPackages: (): SubscriptionPackage[] =>
-    getItem<SubscriptionPackage[]>('pl_sub_packages', SEED_PACKAGES),
+  getPackages: (): SubscriptionPackage[] => getPackagesWithVersionCheck(),
   savePackage: (p: SubscriptionPackage) => {
     const all = subscriptionStore.getPackages();
     const idx = all.findIndex(x => x.id === p.id);
@@ -275,6 +287,7 @@ export const subscriptionStore = {
     getItem<UserSubscription | null>(`pl_sub_${userId}`, null),
   setUserSubscription: (userId: string, sub: UserSubscription) =>
     setItem(`pl_sub_${userId}`, sub),
+  isUnlimited: (pkg: SubscriptionPackage): boolean => pkg.sessionsPerMonth >= 9999,
 };
 
 // Wallet
@@ -384,26 +397,27 @@ const SEED_BLOG_POSTS: BlogPost[] = [
   },
 ];
 
+// sessionsPerMonth = 9999 is used as a sentinel value meaning "Unlimited"
 const SEED_PACKAGES: SubscriptionPackage[] = [
   {
     id: 'pkg-basic',
     name: 'Basic',
     sessionsPerMonth: 4,
-    price: 49,
+    price: 3,
     features: ['4 sessions/month', 'Any subject', 'Session recordings', 'Email support'],
   },
   {
     id: 'pkg-standard',
     name: 'Standard',
     sessionsPerMonth: 8,
-    price: 89,
+    price: 10,
     features: ['8 sessions/month', 'Any subject', 'Session recordings', 'Priority support', 'AI Study Assistant'],
   },
   {
     id: 'pkg-premium',
     name: 'Premium',
-    sessionsPerMonth: 16,
-    price: 159,
-    features: ['16 sessions/month', 'Any subject', 'Session recordings', '24/7 support', 'AI Study Assistant', 'Dedicated tutor'],
+    sessionsPerMonth: 9999,
+    price: 20,
+    features: ['Unlimited sessions/month', 'Any subject', 'Session recordings', '24/7 support', 'AI Study Assistant', 'Dedicated tutor'],
   },
 ];

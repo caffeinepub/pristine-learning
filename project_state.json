@@ -1,15 +1,20 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 5,
+  "projectStateVersion": 21,
   "summary": "PRISTINE LEARNING — a global online tutoring marketplace connecting teachers and students worldwide. Features three user roles (Admin, Teacher, Student), teacher profile auto-generation from Google Sheets, Zoom & Google Classroom integration, Stripe & Razorpay payments with 90/10 revenue split, AI study assistant supporting international curricula, demo lesson system, in-app messaging, affiliate/referral system, subscription packages, blog, and SEO optimization. Built with Next.js, Node.js/Express, PostgreSQL, scalable to 100,000 users on AWS/Vercel.",
   "architectural_notes": [
     "Tech stack: Next.js frontend, Node.js/Express backend, PostgreSQL database, hosted on AWS or Vercel",
     "Scalability target: 100,000 concurrent users with secure cloud infrastructure",
     "Video: Zoom SDK primary, with option for in-platform video sessions",
-    "Payments: Stripe + Razorpay dual gateway; commission logic server-side only"
+    "Payments: Stripe + Razorpay dual gateway; commission logic server-side only",
+    "i18n: Bilingual support (Tamil + English) via user-selectable language switcher; all UI text must support both languages"
   ],
-  "known_issues": [],
-  "isFixRequest": false,
+  "known_issues": [
+    "Razorpay payment gateway is not working — reported by user in Version 6",
+    "Find a Teacher button throws 'something went wrong' error — reported in Version 7",
+    "Subscription page missing 'unlimited sessions' display for Premium tier — reported in Version 9"
+  ],
+  "isFixRequest": true,
   "existing_features": [
     {
       "id": "feature-implement-three-user-roles-admin-teacher-and-student-stored-in-the-backend-with-role-based-access-control-each-role-must-have-its-own-dedicated-dashboard-view-on-the-frontend-registration-and-login-must-support-internet-identity-oauth-equivalent-on-icp-and-email-password-authentication",
@@ -96,6 +101,102 @@
       "title": "Display 'pristinelearningofficial@gmail.com' as the official contact email in the site footer, About/Contact sections, and any support reference areas across the platform. Render it as a clickable 'mailto:pristinelearningofficial@gmail.com' link wherever it appears.",
       "reqIds": [
         "REQ-20"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-build-a-public-facing-interactive-demo-walkthrough-page-at-route-demo-that-guides-visitors-through-the-key-features-of-the-pristine-learning-platform-the-page-must-include-a-step-by-step-tour-covering-1-homepage-teacher-search-2-teacher-profile-booking-flow-3-student-dashboard-overview-4-teacher-dashboard-overview-5-admin-dashboard-overview-6-ai-study-assistant-7-in-app-messaging-8-payments-wallet-each-step-should-display-a-descriptive-title-a-short-explanation-of-the-feature-and-a-clear-try-it-or-go-to-call-to-action-button-linking-to-the-relevant-page-include-a-progress-indicator-e-g-step-x-of-y-and-previous-next-navigation-buttons",
+      "title": "Build a public-facing interactive demo/walkthrough page at route '/demo' that guides visitors through the key features of the Pristine Learning platform. The page must include a step-by-step tour covering: (1) Homepage & teacher search, (2) Teacher profile & booking flow, (3) Student dashboard overview, (4) Teacher dashboard overview, (5) Admin dashboard overview, (6) AI Study Assistant, (7) In-app messaging, (8) Payments & wallet. Each step should display a descriptive title, a short explanation of the feature, and a clear 'Try it' or 'Go to' call-to-action button linking to the relevant page. Include a progress indicator (e.g., step X of Y) and Previous/Next navigation buttons.",
+      "reqIds": [
+        "REQ-21"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-take-a-tour-or-see-demo-button-to-the-homepage-hero-section-and-the-navbar-that-links-to-the-demo-walkthrough-page-the-button-should-use-a-secondary-outline-style-to-complement-the-existing-primary-ctas",
+      "title": "Add a 'Take a Tour' or 'See Demo' button to the homepage hero section and the Navbar that links to the '/demo' walkthrough page. The button should use a secondary/outline style to complement the existing primary CTAs.",
+      "reqIds": [
+        "REQ-22"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-tamil-nadu-samacheer-kalvi-as-a-supported-curriculum-option-in-the-ai-study-assistant-page-alongside-the-existing-options-cbse-icse-ib-gcse-sat-ielts-it-must-appear-in-the-curriculum-selector-dropdown-for-all-four-tools-study-material-generator-quiz-creator-note-summarizer-and-personalized-study-plan",
+      "title": "Add 'Tamil Nadu Samacheer Kalvi' as a supported curriculum option in the AI Study Assistant page alongside the existing options (CBSE, ICSE, IB, GCSE, SAT, IELTS). It must appear in the curriculum selector/dropdown for all four tools: Study Material Generator, Quiz Creator, Note Summarizer, and Personalized Study Plan.",
+      "reqIds": [
+        "REQ-23"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-extend-the-rule-based-template-driven-content-generation-logic-in-the-ai-study-assistant-to-include-tamil-nadu-samacheer-kalvi-specific-content-templates-for-common-subjects-e-g-mathematics-science-social-science-english-tamil-covering-typical-grade-levels-classes-6-12-each-template-should-produce-structured-curriculum-appropriate-output-for-study-materials-quizzes-and-study-plans",
+      "title": "Extend the rule-based/template-driven content generation logic in the AI Study Assistant to include Tamil Nadu Samacheer Kalvi-specific content templates for common subjects (e.g., Mathematics, Science, Social Science, English, Tamil) covering typical grade levels (Classes 6–12). Each template should produce structured, curriculum-appropriate output for study materials, quizzes, and study plans.",
+      "reqIds": [
+        "REQ-24"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-a-frontend-i18n-translation-system-that-supports-english-and-tamil-languages-define-translation-keys-and-their-english-and-tamil-string-values-covering-all-ui-text-across-the-platform-navigation-labels-button-text-headings-form-labels-placeholder-text-status-messages-dashboard-section-titles-footer-content-and-any-other-user-visible-strings-store-translations-as-static-typescript-json-objects-e-g-en-ts-and-ta-ts-in-a-dedicated-frontend-src-i18n-directory",
+      "title": "Create a frontend i18n translation system that supports English and Tamil languages. Define translation keys and their English and Tamil string values covering all UI text across the platform: navigation labels, button text, headings, form labels, placeholder text, status messages, dashboard section titles, footer content, and any other user-visible strings. Store translations as static TypeScript/JSON objects (e.g., en.ts and ta.ts) in a dedicated frontend/src/i18n/ directory.",
+      "reqIds": [
+        "REQ-25"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-a-languagecontext-react-context-hook-that-stores-the-currently-selected-language-en-or-ta-defaults-to-en-persists-the-selection-in-localstorage-and-exposes-a-t-key-translation-function-and-a-setlanguage-toggle-wrap-the-entire-app-in-this-provider-so-all-components-can-access-translations",
+      "title": "Implement a LanguageContext (React Context + hook) that stores the currently selected language ('en' or 'ta'), defaults to 'en', persists the selection in localStorage, and exposes a t(key) translation function and a setLanguage() toggle. Wrap the entire app in this provider so all components can access translations.",
+      "reqIds": [
+        "REQ-26"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-language-switcher-ui-element-to-the-navbar-that-allows-users-to-toggle-between-english-en-and-tamil-the-switcher-should-display-the-currently-active-language-and-update-the-languagecontext-when-clicked-on-mobile-include-the-language-switcher-in-the-mobile-menu-as-well",
+      "title": "Add a language switcher UI element to the Navbar that allows users to toggle between English ('EN') and Tamil ('தமிழ்'). The switcher should display the currently active language and update the LanguageContext when clicked. On mobile, include the language switcher in the mobile menu as well.",
+      "reqIds": [
+        "REQ-27"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-every-frontend-page-and-component-excluding-immutable-paths-to-replace-all-hardcoded-user-facing-text-strings-with-calls-to-the-t-key-translation-hook-pages-to-update-include-homepage-teachersearchpage-teacherprofilepage-studentdashboard-teacherdashboard-admindashboard-aistudyassistantpage-demopage-bookingmodal-footer-profilesetupmodal-reviewssection-reviewsubmissionform-messageinbox-stripesetupmodal-paymentsuccess-paymentfailure-subscriptionpackagespage-teacherwalletpage-sessionrecordingspage-bloglistingpage-blogpostpage-and-dashboardlayout-sidebar-navigation-labels",
+      "title": "Update every frontend page and component (excluding immutable paths) to replace all hardcoded user-facing text strings with calls to the t(key) translation hook. Pages to update include: Homepage, TeacherSearchPage, TeacherProfilePage, StudentDashboard, TeacherDashboard, AdminDashboard, AIStudyAssistantPage, DemoPage, BookingModal, Footer, ProfileSetupModal, ReviewsSection, ReviewSubmissionForm, MessageInbox, StripeSetupModal, PaymentSuccess, PaymentFailure, SubscriptionPackagesPage, TeacherWalletPage, SessionRecordingsPage, BlogListingPage, BlogPostPage, and DashboardLayout sidebar navigation labels.",
+      "reqIds": [
+        "REQ-28"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-remove-all-razorpay-payment-gateway-integration-from-the-frontend-and-backend-razorpay-sdk-references-checkout-calls-api-key-handling-and-any-razorpay-specific-ui-elements-buttons-modals-logos-must-be-fully-removed-from-the-codebase-the-platform-should-rely-solely-on-stripe-for-all-payment-processing",
+      "title": "Remove all Razorpay payment gateway integration from the frontend and backend. Razorpay SDK references, checkout calls, API key handling, and any Razorpay-specific UI elements (buttons, modals, logos) must be fully removed from the codebase. The platform should rely solely on Stripe for all payment processing.",
+      "reqIds": [
+        "REQ-30"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-audit-all-frontend-pages-and-components-including-subscriptionpackagespage-bookingmodal-paymentsuccess-paymentfailure-teacherwalletpage-admindashboard-and-demopage-and-remove-any-conditional-logic-payment-method-selectors-or-copy-that-references-razorpay-ensure-all-payment-related-user-facing-text-references-stripe-only",
+      "title": "Audit all frontend pages and components — including SubscriptionPackagesPage, BookingModal, PaymentSuccess, PaymentFailure, TeacherWalletPage, AdminDashboard, and DemoPage — and remove any conditional logic, payment-method selectors, or copy that references Razorpay. Ensure all payment-related user-facing text references Stripe only.",
+      "reqIds": [
+        "REQ-31"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-investigate-and-fix-the-runtime-error-that-occurs-when-the-find-a-teacher-button-is-clicked-from-the-homepage-which-navigates-to-the-teachersearchpage-the-page-must-load-without-throwing-a-something-went-wrong-error-ensure-the-teachersearchpage-renders-correctly-with-an-empty-or-populated-teacher-list-handles-loading-and-error-states-gracefully-and-does-not-crash-when-teacher-data-is-unavailable-or-when-the-backend-returns-an-empty-result",
+      "title": "Investigate and fix the runtime error that occurs when the 'Find a Teacher' button is clicked from the homepage, which navigates to the TeacherSearchPage. The page must load without throwing a 'something went wrong' error. Ensure the TeacherSearchPage renders correctly with an empty or populated teacher list, handles loading and error states gracefully, and does not crash when teacher data is unavailable or when the backend returns an empty result.",
+      "reqIds": [
+        "REQ-32"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-on-the-subscriptionpackagespage-update-the-premium-subscription-tier-to-prominently-display-unlimited-sessions-as-a-key-benefit-the-feature-list-for-the-premium-plan-must-include-unlimited-sessions-as-a-line-item-clearly-distinguishing-it-from-the-basic-and-standard-tiers-which-show-a-fixed-session-count-this-text-must-be-visible-in-the-plan-card-any-comparison-table-and-any-confirmation-or-summary-ui-on-that-page",
+      "title": "On the SubscriptionPackagesPage, update the Premium subscription tier to prominently display 'Unlimited Sessions' as a key benefit. The feature list for the Premium plan must include 'Unlimited Sessions' as a line item, clearly distinguishing it from the Basic and Standard tiers which show a fixed session count. This text must be visible in the plan card, any comparison table, and any confirmation or summary UI on that page.",
+      "reqIds": [
+        "REQ-34"
       ],
       "version": 1
     }
@@ -236,6 +337,52 @@
     {
       "id": "AR-26",
       "summary": "Display pristinelearningofficial@gmail.com as the official contact email in the footer, About/Contact sections, and support references as a mailto: link",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-27",
+      "summary": "Create a demo/walkthrough of the website features showcasing platform functionality for new visitors or admins",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-28",
+      "summary": "Add Tamil Nadu Samacheer Kalvi State Board syllabus as a supported curriculum in the AI Study Assistant alongside CBSE/ICSE/IB/GCSE/SAT/IELTS",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-29",
+      "summary": "Implement bilingual support (Tamil and English) across the entire website. Visitors can toggle between languages via a language switcher. All UI text, navigation, labels, and content should be translated/rendered in the selected language.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-30",
+      "summary": "Update subscription package prices: Basic to $3/month, Standard to $10/month, Premium to $20/month",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-31",
+      "summary": "Update the subscription package prices displayed on the SubscriptionPackagesPage so that the Basic tier costs $3/month, the Standard tier costs $10/month, and the Premium tier costs $20/month. Ensure the updated prices are reflected in all price labels, Stripe checkout amounts, and any summary/confirmation text on that page.",
+      "reqIds": [
+        "REQ-29"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-32",
+      "summary": "Deploy and publish the current version of the Pristine Learning platform to production so it is publicly accessible. Ensure the frontend and backend are fully built, linked, and live on the Internet Computer network.",
+      "reqIds": [
+        "REQ-33"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-33",
+      "summary": "Add 'unlimited sessions' feature to the Premium subscription tier on the SubscriptionPackagesPage, clearly displaying unlimited sessions as a benefit of the Premium plan",
       "reqIds": [],
       "status": "pending"
     }

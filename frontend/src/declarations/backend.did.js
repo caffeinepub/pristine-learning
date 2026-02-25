@@ -44,6 +44,7 @@ export const TeacherProfile = IDL.Record({
   'demoVideoUrl' : IDL.Text,
   'reviewCount' : IDL.Nat,
 });
+export const UserProfile = IDL.Record({ 'name' : IDL.Text });
 export const StripeSessionStatus = IDL.Variant({
   'completed' : IDL.Record({
     'userPrincipal' : IDL.Opt(IDL.Text),
@@ -111,6 +112,7 @@ export const idlService = IDL.Service({
     ),
   'createTeacherProfile' : IDL.Func([IDL.Text, TeacherProfile], [], []),
   'getAlbums' : IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
+  'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getImages' : IDL.Func([IDL.Text], [IDL.Vec(IDL.Text)], ['query']),
   'getStripeSessionStatus' : IDL.Func([IDL.Text], [StripeSessionStatus], []),
@@ -119,9 +121,15 @@ export const idlService = IDL.Service({
       [IDL.Opt(TeacherProfile)],
       ['query'],
     ),
+  'getUserProfile' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Opt(UserProfile)],
+      ['query'],
+    ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'isStripeConfigured' : IDL.Func([], [IDL.Bool], ['query']),
   'listTeacherProfiles' : IDL.Func([], [IDL.Vec(TeacherProfile)], ['query']),
+  'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'setStripeConfiguration' : IDL.Func([StripeConfiguration], [], []),
   'transform' : IDL.Func(
       [TransformationInput],
@@ -170,6 +178,7 @@ export const idlFactory = ({ IDL }) => {
     'demoVideoUrl' : IDL.Text,
     'reviewCount' : IDL.Nat,
   });
+  const UserProfile = IDL.Record({ 'name' : IDL.Text });
   const StripeSessionStatus = IDL.Variant({
     'completed' : IDL.Record({
       'userPrincipal' : IDL.Opt(IDL.Text),
@@ -234,6 +243,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'createTeacherProfile' : IDL.Func([IDL.Text, TeacherProfile], [], []),
     'getAlbums' : IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
+    'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getImages' : IDL.Func([IDL.Text], [IDL.Vec(IDL.Text)], ['query']),
     'getStripeSessionStatus' : IDL.Func([IDL.Text], [StripeSessionStatus], []),
@@ -242,9 +252,15 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Opt(TeacherProfile)],
         ['query'],
       ),
+    'getUserProfile' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Opt(UserProfile)],
+        ['query'],
+      ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'isStripeConfigured' : IDL.Func([], [IDL.Bool], ['query']),
     'listTeacherProfiles' : IDL.Func([], [IDL.Vec(TeacherProfile)], ['query']),
+    'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'setStripeConfiguration' : IDL.Func([StripeConfiguration], [], []),
     'transform' : IDL.Func(
         [TransformationInput],

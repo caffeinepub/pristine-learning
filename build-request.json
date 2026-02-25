@@ -1,38 +1,40 @@
 {
   "kind": "build_request",
-  "title": "Display official contact email across the platform",
+  "title": "Add 'Unlimited Sessions' display to Premium subscription tier",
   "projectName": "Pristine Learning",
   "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-20",
-      "text": "Display 'pristinelearningofficial@gmail.com' as the official contact email in the site footer, About/Contact sections, and any support reference areas across the platform. Render it as a clickable 'mailto:pristinelearningofficial@gmail.com' link wherever it appears.",
+      "id": "REQ-34",
+      "text": "On the SubscriptionPackagesPage, update the Premium subscription tier to prominently display 'Unlimited Sessions' as a key benefit. The feature list for the Premium plan must include 'Unlimited Sessions' as a line item, clearly distinguishing it from the Basic and Standard tiers which show a fixed session count. This text must be visible in the plan card, any comparison table, and any confirmation or summary UI on that page.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-recent"
+          "msg-4"
         ],
         "quotes": [
-          "can you set the official email Id as pristinelearningofficial@gmail.com",
-          "Display pristinelearningofficial@gmail.com as the official contact email in the footer, About/Contact sections, and support references as a mailto: link"
+          "you didn't make the unlimited sessions in the subscription page"
         ]
       },
       "acceptanceCriteria": [
-        "The email 'pristinelearningofficial@gmail.com' appears in the site footer as a clickable mailto: link.",
-        "Any About or Contact section on the homepage or other public pages shows the email as a mailto: link.",
-        "Any support or help references in dashboards or other pages that mention contact information display this email as a mailto: link.",
-        "Clicking the email link opens the user's default mail client addressed to pristinelearningofficial@gmail.com."
+        "The Premium subscription plan card on SubscriptionPackagesPage displays 'Unlimited Sessions' (or equivalent phrasing) as a listed benefit.",
+        "Basic and Standard tiers continue to show their fixed session counts (not 'unlimited').",
+        "The 'Unlimited Sessions' label is visually distinct and clearly readable within the plan card.",
+        "No other subscription tier incorrectly shows 'unlimited sessions'.",
+        "The page renders without errors and the premium plan badge/highlight remains intact."
       ]
     }
   ],
   "constraints": [
-    "No email sending functionality — display only as a mailto: hyperlink.",
-    "Do not modify files in frontend/src/hooks/ or frontend/src/components/ui."
+    "Do not modify any files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui.",
+    "Do not change the prices of any subscription tier.",
+    "Do not alter the Stripe checkout flow or session count logic — this is a display-only change."
   ],
   "nonGoals": [
-    "Implementing a contact form that sends emails.",
-    "Integrating any SMTP or email delivery service.",
-    "Changing any backend logic or data models."
+    "Changing subscription pricing.",
+    "Modifying backend subscription data models or session-count enforcement logic.",
+    "Updating any dashboard other than SubscriptionPackagesPage.",
+    "Adding new subscription tiers."
   ],
   "imageRequirements": {
     "required": [],

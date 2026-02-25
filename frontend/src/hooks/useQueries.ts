@@ -1,23 +1,70 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import type { TeacherProfile, ShoppingItem, StripeConfiguration } from '../backend';
+import { UserProfile, TeacherProfile, ShoppingItem, StripeSessionStatus } from '../backend';
 
-// ─── Teacher Profiles ───────────────────────────────────────────────────────
+// ─── User Profile ────────────────────────────────────────────────────────────
+
+export function useGetCallerUserProfile() {
+  const { actor, isFetching: actorFetching } = useActor();
+
+  const query = useQuery<UserProfile | null>({
+    queryKey: ['currentUserProfile'],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.getCallerUserProfile();
+    },
+    enabled: !!actor && !actorFetching,
+    retry: false,
+  });
+
+  return {
+    ...query,
+    isLoading: actorFetching || query.isLoading,
+    isFetched: !!actor && query.isFetched,
+  };
+}
+
+export function useSaveCallerUserProfile() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (profile: UserProfile) => {
+      if (!actor) throw new Error('Actor not available');
+      await actor.saveCallerUserProfile(profile);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] });
+    },
+  });
+}
+
+// ─── Teacher Profiles ─────────────────────────────────────────────────────────
 
 export function useListTeacherProfiles() {
   const { actor, isFetching } = useActor();
+
   return useQuery<TeacherProfile[]>({
     queryKey: ['teacherProfiles'],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.listTeacherProfiles();
+      try {
+        const result = await actor.listTeacherProfiles();
+        return Array.isArray(result) ? result : [];
+      } catch (err) {
+        console.error('Failed to fetch teacher profiles:', err);
+        throw err;
+      }
     },
     enabled: !!actor && !isFetching,
+    retry: 1,
+    initialData: undefined,
   });
 }
 
 export function useGetTeacherProfile(id: string) {
   const { actor, isFetching } = useActor();
+
   return useQuery<TeacherProfile | null>({
     queryKey: ['teacherProfile', id],
     queryFn: async () => {
@@ -25,66 +72,45 @@ export function useGetTeacherProfile(id: string) {
       return actor.getTeacherProfile(id);
     },
     enabled: !!actor && !isFetching && !!id,
+    retry: 1,
   });
 }
 
 export function useCreateTeacherProfile() {
   const { actor } = useActor();
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async ({ id, profile }: { id: string; profile: TeacherProfile }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.createTeacherProfile(id, profile);
+      await actor.createTeacherProfile(id, profile);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['teacherProfiles'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teacherProfiles'] });
+    },
   });
 }
 
 export function useUpdateTeacherProfile() {
   const { actor } = useActor();
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async ({ id, profile }: { id: string; profile: TeacherProfile }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.updateTeacherProfile(id, profile);
+      await actor.updateTeacherProfile(id, profile);
     },
-    onSuccess: (_d, { id }) => {
-      qc.invalidateQueries({ queryKey: ['teacherProfiles'] });
-      qc.invalidateQueries({ queryKey: ['teacherProfile', id] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teacherProfiles'] });
     },
   });
 }
 
-// ─── Auth / User Profile ─────────────────────────────────────────────────────
-
-export function useGetCallerUserRole() {
-  const { actor, isFetching } = useActor();
-  return useQuery({
-    queryKey: ['callerUserRole'],
-    queryFn: async () => {
-      if (!actor) return 'guest';
-      return actor.getCallerUserRole();
-    },
-    enabled: !!actor && !isFetching,
-  });
-}
-
-export function useIsCallerAdmin() {
-  const { actor, isFetching } = useActor();
-  return useQuery<boolean>({
-    queryKey: ['isCallerAdmin'],
-    queryFn: async () => {
-      if (!actor) return false;
-      return actor.isCallerAdmin();
-    },
-    enabled: !!actor && !isFetching,
-  });
-}
-
-// ─── Stripe ──────────────────────────────────────────────────────────────────
+// ─── Stripe Payments ──────────────────────────────────────────────────────────
 
 export function useIsStripeConfigured() {
   const { actor, isFetching } = useActor();
+
   return useQuery<boolean>({
     queryKey: ['isStripeConfigured'],
     queryFn: async () => {
@@ -97,27 +123,33 @@ export function useIsStripeConfigured() {
 
 export function useSetStripeConfiguration() {
   const { actor } = useActor();
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: async (config: StripeConfiguration) => {
+    mutationFn: async (config: { secretKey: string; allowedCountries: string[] }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.setStripeConfiguration(config);
+      await actor.setStripeConfiguration(config);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['isStripeConfigured'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['isStripeConfigured'] });
+    },
   });
 }
 
 export function useCreateCheckoutSession() {
   const { actor } = useActor();
+
   return useMutation({
-    mutationFn: async (items: ShoppingItem[]) => {
+    mutationFn: async (items: ShoppingItem[]): Promise<{ id: string; url: string }> => {
       if (!actor) throw new Error('Actor not available');
       const baseUrl = `${window.location.protocol}//${window.location.host}`;
       const successUrl = `${baseUrl}/payment-success`;
       const cancelUrl = `${baseUrl}/payment-failure`;
       const result = await actor.createCheckoutSession(items, successUrl, cancelUrl);
       const session = JSON.parse(result) as { id: string; url: string };
-      if (!session?.url) throw new Error('Stripe session missing url');
+      if (!session?.url) {
+        throw new Error('Stripe session missing url');
+      }
       return session;
     },
   });
@@ -125,8 +157,9 @@ export function useCreateCheckoutSession() {
 
 export function useGetStripeSessionStatus(sessionId: string) {
   const { actor, isFetching } = useActor();
-  return useQuery({
-    queryKey: ['stripeSession', sessionId],
+
+  return useQuery<StripeSessionStatus>({
+    queryKey: ['stripeSessionStatus', sessionId],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
       return actor.getStripeSessionStatus(sessionId);

@@ -47,6 +47,7 @@ export interface TransformationOutput {
   'body' : Uint8Array,
   'headers' : Array<http_header>,
 }
+export interface UserProfile { 'name' : string }
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
@@ -92,13 +93,16 @@ export interface _SERVICE {
   >,
   'createTeacherProfile' : ActorMethod<[string, TeacherProfile], undefined>,
   'getAlbums' : ActorMethod<[], Array<string>>,
+  'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getImages' : ActorMethod<[string], Array<string>>,
   'getStripeSessionStatus' : ActorMethod<[string], StripeSessionStatus>,
   'getTeacherProfile' : ActorMethod<[string], [] | [TeacherProfile]>,
+  'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'isStripeConfigured' : ActorMethod<[], boolean>,
   'listTeacherProfiles' : ActorMethod<[], Array<TeacherProfile>>,
+  'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'setStripeConfiguration' : ActorMethod<[StripeConfiguration], undefined>,
   'transform' : ActorMethod<[TransformationInput], TransformationOutput>,
   'updateTeacherProfile' : ActorMethod<[string, TeacherProfile], undefined>,

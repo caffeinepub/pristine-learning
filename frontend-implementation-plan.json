@@ -1,0 +1,49 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Display official contact email across the platform",
+  "requirements": [
+    {
+      "id": "REQ-20",
+      "summary": "Display 'pristinelearningofficial@gmail.com' as a clickable mailto: link in the site footer, About/Contact sections, and support reference areas across the platform",
+      "acceptanceCriteria": [
+        "The email 'pristinelearningofficial@gmail.com' appears in the site footer as a clickable mailto: link.",
+        "Any About or Contact section on the homepage or other public pages shows the email as a mailto: link.",
+        "Any support or help references in dashboards or other pages that mention contact information display this email as a mailto: link.",
+        "Clicking the email link opens the user's default mail client addressed to pristinelearningofficial@gmail.com."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/Footer.tsx",
+          "operation": "create",
+          "description": "Create a Footer component that displays the official contact email 'pristinelearningofficial@gmail.com' as a clickable mailto: link. Include platform branding, quick links, and contact information section. Style consistently with the teal/amber theme from index.css."
+        },
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Import and wire the Footer component into the root application layout so it appears on all pages. Place the Footer component after the router outlet to ensure it displays consistently across all routes."
+        },
+        {
+          "path": "frontend/src/pages/Homepage.tsx",
+          "operation": "modify",
+          "description": "Add an About or Contact section to the homepage that includes the official contact email 'pristinelearningofficial@gmail.com' as a clickable mailto: link. Position this section near the bottom of the page, above where the Footer will render."
+        },
+        {
+          "path": "frontend/src/pages/StudentDashboard.tsx",
+          "operation": "modify",
+          "description": "Add a support or help reference section in the student dashboard that displays the official contact email 'pristinelearningofficial@gmail.com' as a clickable mailto: link. Include help text indicating students can reach out for support."
+        },
+        {
+          "path": "frontend/src/pages/TeacherDashboard.tsx",
+          "operation": "modify",
+          "description": "Add a support or help reference section in the teacher dashboard that displays the official contact email 'pristinelearningofficial@gmail.com' as a clickable mailto: link. Include help text indicating teachers can reach out for support."
+        },
+        {
+          "path": "frontend/src/pages/AdminDashboard.tsx",
+          "operation": "modify",
+          "description": "Add a support or help reference section in the admin dashboard that displays the official contact email 'pristinelearningofficial@gmail.com' as a clickable mailto: link. Include help text indicating admins can reach out for technical support."
+        }
+      ]
+    }
+  ]
+}

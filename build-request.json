@@ -1,0 +1,41 @@
+{
+  "kind": "build_request",
+  "title": "Display official contact email across the platform",
+  "projectName": "Pristine Learning",
+  "priority": "normal",
+  "requirements": [
+    {
+      "id": "REQ-20",
+      "text": "Display 'pristinelearningofficial@gmail.com' as the official contact email in the site footer, About/Contact sections, and any support reference areas across the platform. Render it as a clickable 'mailto:pristinelearningofficial@gmail.com' link wherever it appears.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-recent"
+        ],
+        "quotes": [
+          "can you set the official email Id as pristinelearningofficial@gmail.com",
+          "Display pristinelearningofficial@gmail.com as the official contact email in the footer, About/Contact sections, and support references as a mailto: link"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The email 'pristinelearningofficial@gmail.com' appears in the site footer as a clickable mailto: link.",
+        "Any About or Contact section on the homepage or other public pages shows the email as a mailto: link.",
+        "Any support or help references in dashboards or other pages that mention contact information display this email as a mailto: link.",
+        "Clicking the email link opens the user's default mail client addressed to pristinelearningofficial@gmail.com."
+      ]
+    }
+  ],
+  "constraints": [
+    "No email sending functionality — display only as a mailto: hyperlink.",
+    "Do not modify files in frontend/src/hooks/ or frontend/src/components/ui."
+  ],
+  "nonGoals": [
+    "Implementing a contact form that sends emails.",
+    "Integrating any SMTP or email delivery service.",
+    "Changing any backend logic or data models."
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  }
+}

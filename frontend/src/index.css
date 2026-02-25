@@ -1,0 +1,157 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.5rem;
+
+    /* Pristine Learning — Teal + Amber education palette */
+    --background: 0.98 0.005 200;
+    --foreground: 0.18 0.02 240;
+
+    --card: 1 0 0;
+    --card-foreground: 0.18 0.02 240;
+
+    --popover: 1 0 0;
+    --popover-foreground: 0.18 0.02 240;
+
+    --primary: 0.48 0.12 195;
+    --primary-foreground: 0.99 0 0;
+
+    --secondary: 0.94 0.03 195;
+    --secondary-foreground: 0.3 0.08 195;
+
+    --muted: 0.95 0.01 200;
+    --muted-foreground: 0.52 0.02 220;
+
+    --accent: 0.78 0.14 75;
+    --accent-foreground: 0.18 0.05 60;
+
+    --destructive: 0.58 0.22 27;
+    --destructive-foreground: 0.99 0 0;
+
+    --border: 0.9 0.015 200;
+    --input: 0.9 0.015 200;
+    --ring: 0.48 0.12 195;
+
+    --chart-1: 0.48 0.12 195;
+    --chart-2: 0.78 0.14 75;
+    --chart-3: 0.62 0.18 145;
+    --chart-4: 0.65 0.15 30;
+    --chart-5: 0.55 0.16 270;
+
+    --sidebar: 0.18 0.04 230;
+    --sidebar-foreground: 0.92 0.01 200;
+    --sidebar-primary: 0.78 0.14 75;
+    --sidebar-primary-foreground: 0.18 0.05 60;
+    --sidebar-accent: 0.28 0.05 230;
+    --sidebar-accent-foreground: 0.92 0.01 200;
+    --sidebar-border: 0.28 0.04 230;
+    --sidebar-ring: 0.48 0.12 195;
+  }
+
+  .dark {
+    --background: 0.14 0.02 230;
+    --foreground: 0.95 0.01 200;
+
+    --card: 0.18 0.03 230;
+    --card-foreground: 0.95 0.01 200;
+
+    --popover: 0.22 0.03 230;
+    --popover-foreground: 0.95 0.01 200;
+
+    --primary: 0.55 0.14 195;
+    --primary-foreground: 0.99 0 0;
+
+    --secondary: 0.25 0.04 230;
+    --secondary-foreground: 0.85 0.02 200;
+
+    --muted: 0.22 0.03 230;
+    --muted-foreground: 0.62 0.02 220;
+
+    --accent: 0.72 0.16 75;
+    --accent-foreground: 0.18 0.05 60;
+
+    --destructive: 0.65 0.22 27;
+    --destructive-foreground: 0.99 0 0;
+
+    --border: 1 0 0 / 10%;
+    --input: 1 0 0 / 12%;
+    --ring: 0.55 0.14 195;
+
+    --sidebar: 0.12 0.03 230;
+    --sidebar-foreground: 0.92 0.01 200;
+    --sidebar-primary: 0.72 0.16 75;
+    --sidebar-primary-foreground: 0.18 0.05 60;
+    --sidebar-accent: 0.2 0.04 230;
+    --sidebar-accent-foreground: 0.92 0.01 200;
+    --sidebar-border: 1 0 0 / 10%;
+    --sidebar-ring: 0.55 0.14 195;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    scroll-behavior: smooth;
+  }
+
+  h1, h2, h3 {
+    font-family: 'Playfair Display', serif;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-primary-foreground hover:opacity-90 active:scale-95 transition-all duration-200 rounded-lg px-5 py-2.5 font-medium text-sm shadow-sm;
+  }
+
+  .btn-accent {
+    @apply bg-accent text-accent-foreground hover:opacity-90 active:scale-95 transition-all duration-200 rounded-lg px-5 py-2.5 font-medium text-sm shadow-sm;
+  }
+
+  .card-hover {
+    @apply transition-all duration-200 hover:shadow-md hover:-translate-y-0.5;
+  }
+
+  /* sidebar-link uses direct CSS to avoid opacity modifier issues with oklch tokens */
+  .sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: background-color 0.15s, color 0.15s;
+    color: oklch(var(--sidebar-foreground) / 0.75);
+  }
+
+  .sidebar-link:hover {
+    background-color: oklch(var(--sidebar-accent));
+    color: oklch(var(--sidebar-foreground));
+  }
+
+  .sidebar-link-active {
+    background-color: oklch(var(--sidebar-primary));
+    color: oklch(var(--sidebar-primary-foreground));
+  }
+
+  .sidebar-link-active:hover {
+    background-color: oklch(var(--sidebar-primary));
+    color: oklch(var(--sidebar-primary-foreground));
+  }
+
+  .star-filled {
+    @apply text-amber-400 fill-amber-400;
+  }
+
+  .star-empty {
+    @apply text-gray-300;
+  }
+}

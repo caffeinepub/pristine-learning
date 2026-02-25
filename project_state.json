@@ -1,0 +1,247 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 5,
+  "summary": "PRISTINE LEARNING — a global online tutoring marketplace connecting teachers and students worldwide. Features three user roles (Admin, Teacher, Student), teacher profile auto-generation from Google Sheets, Zoom & Google Classroom integration, Stripe & Razorpay payments with 90/10 revenue split, AI study assistant supporting international curricula, demo lesson system, in-app messaging, affiliate/referral system, subscription packages, blog, and SEO optimization. Built with Next.js, Node.js/Express, PostgreSQL, scalable to 100,000 users on AWS/Vercel.",
+  "architectural_notes": [
+    "Tech stack: Next.js frontend, Node.js/Express backend, PostgreSQL database, hosted on AWS or Vercel",
+    "Scalability target: 100,000 concurrent users with secure cloud infrastructure",
+    "Video: Zoom SDK primary, with option for in-platform video sessions",
+    "Payments: Stripe + Razorpay dual gateway; commission logic server-side only"
+  ],
+  "known_issues": [],
+  "isFixRequest": false,
+  "existing_features": [
+    {
+      "id": "feature-implement-three-user-roles-admin-teacher-and-student-stored-in-the-backend-with-role-based-access-control-each-role-must-have-its-own-dedicated-dashboard-view-on-the-frontend-registration-and-login-must-support-internet-identity-oauth-equivalent-on-icp-and-email-password-authentication",
+      "title": "Implement three user roles — Admin, Teacher, and Student — stored in the backend with role-based access control. Each role must have its own dedicated dashboard view on the frontend. Registration and login must support Internet Identity (OAuth-equivalent on ICP) and email/password authentication.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-a-session-booking-system-in-the-backend-to-store-bookings-student-id-teacher-id-session-type-demo-paid-scheduled-time-timezone-status-meeting-link-on-the-frontend-teacher-profile-pages-must-include-book-demo-and-book-paid-session-buttons-that-open-a-booking-modal-with-time-slot-selection-respecting-the-teacher-s-availability-after-booking-display-a-confirmation-with-meeting-link-and-send-a-dashboard-notification",
+      "title": "Implement a session booking system in the backend to store bookings (student ID, teacher ID, session type [demo/paid], scheduled time, timezone, status, meeting link). On the frontend, teacher profile pages must include 'Book Demo' and 'Book Paid Session' buttons that open a booking modal with time-slot selection respecting the teacher's availability. After booking, display a confirmation with meeting link and send a dashboard notification.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-build-a-payment-flow-using-stripe-as-the-payment-gateway-when-a-student-books-a-paid-session-they-are-directed-to-a-stripe-checkout-upon-successful-payment-the-backend-records-the-transaction-calculates-10-platform-commission-credits-90-to-the-teacher-s-wallet-balance-and-marks-the-booking-as-confirmed",
+      "title": "Build a payment flow using Stripe as the payment gateway. When a student books a paid session, they are directed to a Stripe checkout. Upon successful payment, the backend records the transaction, calculates 10% platform commission, credits 90% to the teacher's wallet balance, and marks the booking as confirmed.",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-a-reviews-and-ratings-system-after-a-paid-or-demo-session-is-marked-completed-the-student-can-leave-a-star-rating-1-5-and-text-review-for-the-teacher-the-teacher-s-profile-page-must-display-all-reviews-and-the-calculated-average-rating",
+      "title": "Implement a Reviews and Ratings system. After a paid or demo session is marked completed, the student can leave a star rating (1–5) and text review for the teacher. The teacher's profile page must display all reviews and the calculated average rating.",
+      "reqIds": [
+        "REQ-10"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-build-an-in-app-messaging-system-allowing-direct-text-based-messaging-between-a-student-and-a-teacher-each-conversation-thread-is-stored-in-the-backend-both-parties-can-view-their-message-inbox-on-their-respective-dashboards",
+      "title": "Build an in-app messaging system allowing direct text-based messaging between a student and a teacher. Each conversation thread is stored in the backend. Both parties can view their message inbox on their respective dashboards.",
+      "reqIds": [
+        "REQ-11"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-an-affiliate-referral-system-each-user-gets-a-unique-referral-code-upon-registration-when-a-new-user-signs-up-using-a-referral-link-the-referrer-is-tracked-in-the-backend-the-admin-dashboard-displays-referral-counts-and-conversion-stats-per-affiliate",
+      "title": "Implement an Affiliate Referral system. Each user gets a unique referral code upon registration. When a new user signs up using a referral link, the referrer is tracked in the backend. The admin dashboard displays referral counts and conversion stats per affiliate.",
+      "reqIds": [
+        "REQ-13"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-apply-a-modern-professional-education-focused-visual-theme-across-the-entire-platform-use-a-soft-light-color-palette-warm-whites-muted-teals-and-gentle-amber-accents-with-clean-sans-serif-typography-use-a-dashboard-style-layout-with-a-persistent-sidebar-navigation-for-authenticated-users-and-a-polished-marketing-homepage-for-guests-include-smooth-transitions-and-subtle-micro-animations-on-buttons-cards-and-page-navigation-ensure-full-mobile-responsiveness",
+      "title": "Apply a modern, professional education-focused visual theme across the entire platform. Use a soft, light color palette (warm whites, muted teals, and gentle amber accents) with clean sans-serif typography. Use a dashboard-style layout with a persistent sidebar navigation for authenticated users and a polished marketing homepage for guests. Include smooth transitions and subtle micro-animations on buttons, cards, and page navigation. Ensure full mobile responsiveness.",
+      "reqIds": [
+        "REQ-16"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-build-a-public-marketing-homepage-for-pristine-learning-it-must-include-a-hero-section-with-platform-tagline-and-call-to-action-buttons-get-started-find-a-teacher-a-features-section-highlighting-key-platform-benefits-a-how-it-works-section-with-steps-for-students-and-teachers-a-featured-teachers-section-pulling-from-the-backend-and-a-footer-with-navigation-links",
+      "title": "Build a public marketing homepage for Pristine Learning. It must include: a hero section with platform tagline and call-to-action buttons (Get Started, Find a Teacher), a features section highlighting key platform benefits, a 'How It Works' section with steps for students and teachers, a featured teachers section pulling from the backend, and a footer with navigation links.",
+      "reqIds": [
+        "REQ-17"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-global-timezone-detection-on-the-frontend-when-displaying-session-times-availability-slots-or-booking-confirmations-automatically-detect-the-user-s-local-timezone-via-browser-api-and-render-all-times-in-that-timezone-display-the-detected-timezone-label-alongside-all-time-values",
+      "title": "Implement global timezone detection on the frontend. When displaying session times, availability slots, or booking confirmations, automatically detect the user's local timezone (via browser API) and render all times in that timezone. Display the detected timezone label alongside all time values.",
+      "reqIds": [
+        "REQ-18"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-generate-the-following-static-image-assets-for-the-platform-a-full-width-homepage-hero-background-and-a-pristine-learning-logo",
+      "title": "Generate the following static image assets for the platform: a full-width homepage hero background and a Pristine Learning logo.",
+      "reqIds": [
+        "REQ-19"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-display-pristinelearningofficial-gmail-com-as-the-official-contact-email-in-the-site-footer-about-contact-sections-and-any-support-reference-areas-across-the-platform-render-it-as-a-clickable-mailto-pristinelearningofficial-gmail-com-link-wherever-it-appears",
+      "title": "Display 'pristinelearningofficial@gmail.com' as the official contact email in the site footer, About/Contact sections, and any support reference areas across the platform. Render it as a clickable 'mailto:pristinelearningofficial@gmail.com' link wherever it appears.",
+      "reqIds": [
+        "REQ-20"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Three user roles: Admin, Teacher, Student with role-based dashboards",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Teacher profile auto-generation from Google Sheets (name, photo, qualifications, experience, subjects, languages, demo video, hourly rate, availability, ratings)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Student features: search teachers by subject/grade/language/country/availability, book 1:1 sessions, access recordings, join demo lessons",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Zoom API integration for automatic meeting creation and link generation after payment",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Google Classroom API integration for assignment sharing and material distribution",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Payments via Stripe and Razorpay with 10% platform commission, 90% to teacher wallet, teacher withdrawal dashboard, admin analytics",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-7",
+      "summary": "AI Study Assistant: generate study materials, quizzes, note summaries, personalized study plans supporting CBSE/ICSE/IB/GCSE/SAT/IELTS curricula",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-8",
+      "summary": "Demo lesson system: teachers set demo slots, students book free/low-cost demos, post-demo enrollment prompt",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-9",
+      "summary": "Global features: timezone detection, automatic currency conversion, mobile responsive design",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-10",
+      "summary": "Secure OAuth + Email login, reviews/ratings, in-app messaging, SEO optimized pages, blog section, affiliate referral system, subscription packages, admin control panel",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-12",
+      "summary": "Create a Teacher profile data model in the backend with fields: Name, Photo URL, Qualifications, Experience, Subjects (array), Languages (array), Demo Video URL, Hourly Rate, Availability slots, Ratings, and Review count. Expose backend endpoints to create, read, update, and list teacher profiles. On the frontend, render a public-facing teacher profile page displaying all fields, average rating, and reviews.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-13",
+      "summary": "Build a teacher search and discovery page for students. Students must be able to filter teachers by: subject, grade level, language, country, and availability. Results should display teacher cards with name, photo, subjects, hourly rate, rating, and quick-action buttons.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-16",
+      "summary": "Create a Teacher Wallet dashboard page. It must show the teacher's current balance, a history of earnings per session, pending payouts, and a 'Request Withdrawal' button that records a withdrawal request in the backend.",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-17",
+      "summary": "Build an Admin dashboard with the following panels: (1) Platform analytics — total users, active sessions, revenue, commission earned; (2) User management — list/search/disable teachers and students; (3) Withdrawal management — view and approve/reject teacher withdrawal requests; (4) Booking overview — all bookings with status filters.",
+      "reqIds": [
+        "REQ-7"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-18",
+      "summary": "Implement a Demo Lesson system. Teachers can create demo slots (free or low-cost price) via their dashboard. Students can browse and book these demo slots. After a demo session ends (status set to 'completed'), the student's dashboard shows a prompt to enroll in a paid package with the same teacher.",
+      "reqIds": [
+        "REQ-8"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-19",
+      "summary": "Build an AI Study Assistant page for students. It must provide four tools: (1) Study Material Generator — student inputs subject and curriculum (CBSE, ICSE, IB, GCSE, SAT, IELTS, etc.) and receives generated notes; (2) Quiz Creator — generates multiple-choice questions on a topic; (3) Note Summarizer — student pastes text and receives a summary; (4) Personalized Study Plan — student inputs goals/subject and receives a weekly study plan. Since external AI APIs are not supported, implement this as a structured rule-based or template-driven system in the Motoko backend that produces curriculum-tagged content for each tool.",
+      "reqIds": [
+        "REQ-9"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-22",
+      "summary": "Implement a Session Recordings archive. When a session is marked completed and has a recording URL (stored by teacher/admin), the backend stores the recording linked to the booking. Students can access their past session recordings from a 'My Recordings' section in their dashboard.",
+      "reqIds": [
+        "REQ-12"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-24",
+      "summary": "Implement a Subscription Packages system. Admin can create subscription tiers (e.g., Basic, Standard, Premium) with a defined number of sessions per month and price. Students can subscribe to a package via Stripe checkout. Active subscription is shown on the student dashboard.",
+      "reqIds": [
+        "REQ-14"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-25",
+      "summary": "Build a Blog section. Admin can create, edit, and publish blog posts with a title, cover image URL, content body, author, and publish date. The public blog listing page shows all published posts; clicking a post opens the full article. Blog pages should have SEO-friendly URL slugs.",
+      "reqIds": [
+        "REQ-15"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-26",
+      "summary": "Display pristinelearningofficial@gmail.com as the official contact email in the footer, About/Contact sections, and support references as a mailto: link",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "gameProjectType": "none",
+  "projectName": "PRISTINE LEARNING",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

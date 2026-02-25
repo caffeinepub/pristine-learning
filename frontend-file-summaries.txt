@@ -1,0 +1,12 @@
+{
+  "frontend/src/pages/SubscriptionPackagesPage.tsx": "Public subscription packages page displaying all available plans as cards with pricing, features, and Stripe checkout integration. Supports active subscription display and fallback demo mode when Stripe is not configured.",
+  "frontend/src/pages/PaymentSuccess.tsx": "Payment success page shown after Stripe checkout completes, verifying session status and displaying a confirmation message with navigation back to the student dashboard.",
+  "frontend/src/pages/PaymentFailure.tsx": "Payment failure page shown when Stripe checkout is cancelled or fails, displaying the error reason and providing retry/home navigation options.",
+  "frontend/src/index.css": "Global stylesheet defining the Pristine Learning OKLCH color system, typography imports, and component utility classes. Fixes the sidebar-link component to use direct CSS instead of Tailwind @apply with opacity modifiers, which are incompatible with oklch color tokens.",
+  "frontend/src/components/Footer.tsx": "Reusable site-wide footer component displaying Pristine Learning branding, navigation links, the official contact email (pristinelearningofficial@gmail.com) as a clickable mailto: link, copyright year, and caffeine.ai attribution.",
+  "frontend/src/App.tsx": "Main application component with TanStack Router setup; wraps all routes in a RootLayout that includes the shared Footer component rendered below every page via Outlet.",
+  "frontend/src/pages/Homepage.tsx": "Public homepage with hero, stats, features, how-it-works, featured teachers, CTA sections, and a new \"Get in Touch\" contact section displaying the official email as a mailto: link. The inline footer has been removed (now handled by the global Footer component).",
+  "frontend/src/pages/StudentDashboard.tsx": "Student dashboard with bookings, messages, and referral tabs; adds a support banner at the bottom with the official contact email as a clickable mailto: link.",
+  "frontend/src/pages/TeacherDashboard.tsx": "Teacher dashboard with sessions, demo slots, messages, and referral tabs; adds a support banner at the bottom with the official contact email as a clickable mailto: link.",
+  "frontend/src/pages/AdminDashboard.tsx": "Admin dashboard with bookings, withdrawals, subscriptions, blog, and referrals management tabs; adds a technical support banner at the bottom with the official contact email as a clickable mailto: link."
+}

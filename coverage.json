@@ -1,121 +1,35 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-26T13:44:07.670Z",
+  "generatedAt": "2026-02-26T13:53:33.290Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 11,
-    "implemented": 0,
+    "total": 1,
+    "implemented": 1,
     "items": [
       {
-        "id": "REQ-50",
-        "summary": "Extend the backend actor to expose an admin-only function `setUserRole(userId: Principal, role: {#admin; #teacher; #student}) : async Result` that allows an admin to change any user's assigned role. Guard the call so only a principal with the #admin role can invoke it.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-51",
-        "summary": "Extend the backend actor to expose an admin-only function `deleteUser(userId: Principal) : async Result` that permanently removes a user profile, all associated bookings, activity logs, performance metrics, and review records from stable storage.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-52",
-        "summary": "Extend the backend actor to expose admin-only functions for booking management: `adminUpdateBookingStatus(bookingId: Text, status: BookingStatus) : async Result` to force-update any booking's status, and `adminDeleteBooking(bookingId: Text) : async Result` to permanently remove a booking record.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-53",
-        "summary": "Extend the backend actor to expose admin-only content moderation functions: `deleteReview(reviewId: Text) : async Result` to remove any review, and `deleteMessage(messageId: Text) : async Result` to remove any message from any conversation thread.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-54",
-        "summary": "Extend the backend actor to expose admin-only system configuration functions: `setStripeConfig(secretKey: Text, allowedCountries: [Text]) : async Result` (already partially exists — ensure it is admin-gated), `setPlatformCommissionRate(rateBps: Nat) : async Result` to update the platform commission percentage stored in stable state, and `getPlatformConfig() : async PlatformConfig` to retrieve current configuration values.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-55",
-        "summary": "Extend the backend actor to expose admin-only withdrawal management functions: `approveWithdrawal(withdrawalId: Text) : async Result` and `rejectWithdrawal(withdrawalId: Text, reason: Text) : async Result` that update the withdrawal request status in stable storage and adjust the teacher's wallet balance accordingly on approval.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-56",
-        "summary": "Add a 'System Configuration' tab to the AdminDashboard frontend page. This tab must display and allow editing of: (1) Platform commission rate (shown as a percentage, editable via a number input with a Save button that calls `setPlatformCommissionRate`); (2) Stripe configuration (secret key masked input and allowed-countries multi-select, saving via the existing StripeSetupModal or an inline form); (3) A 'Danger Zone' section containing a clearly styled 'Delete User' action available from the User Management tab's row actions.",
-        "status": "missing",
+        "id": "REQ-61",
+        "summary": "Fix the bug in SubscriptionPackagesPage where clicking a 'Subscribe' button activates the subscription immediately without initiating a Stripe payment flow. The subscription must NOT be activated or recorded in the local store until a successful Stripe checkout session is confirmed. The correct flow is: (1) user clicks Subscribe, (2) app initiates a Stripe checkout session (or shows Stripe configuration prompt if not configured), (3) user completes payment on Stripe, (4) PaymentSuccess page confirms the session and only then activates the subscription. Remove any code path that writes a subscription record to localStorage or marks a plan as active before payment confirmation.",
+        "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/SystemConfigTab.tsx",
-          "frontend/src/pages/AdminDashboard.tsx",
-          "frontend/src/hooks/useQueries.ts"
+          "frontend/src/pages/SubscriptionPackagesPage.tsx",
+          "frontend/src/pages/PaymentSuccess.tsx"
         ],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-57",
-        "summary": "Extend the existing AdminDashboard User Management tab to include row-level admin actions for each user: a 'Change Role' dropdown (admin/teacher/student) that calls `setUserRole`, and a 'Delete User' button that opens a confirmation dialog before calling `deleteUser`. Both actions must be disabled in demo mode.",
-        "status": "missing",
-        "plannedFiles": [
-          "frontend/src/components/UserManagementTab.tsx",
-          "frontend/src/hooks/useQueries.ts"
-        ],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-58",
-        "summary": "Extend the existing AdminDashboard Bookings tab to include admin override actions per booking row: a status override dropdown (pending/confirmed/completed/cancelled) that calls `adminUpdateBookingStatus`, and a 'Delete Booking' button that calls `adminDeleteBooking` after confirmation. Both actions must be disabled in demo mode.",
-        "status": "missing",
-        "plannedFiles": [
-          "frontend/src/pages/AdminDashboard.tsx",
-          "frontend/src/hooks/useQueries.ts"
-        ],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-59",
-        "summary": "Add a 'Content Moderation' tab to the AdminDashboard that lists all reviews and all messages platform-wide (fetched via admin-only backend queries). Each review row must include a 'Delete Review' button calling `deleteReview`. Each message row must include a 'Delete Message' button calling `deleteMessage`. Both must show a confirmation dialog and display success/error toasts. The tab must be disabled in demo mode.",
-        "status": "missing",
-        "plannedFiles": [
-          "frontend/src/components/ContentModerationTab.tsx",
-          "frontend/src/pages/AdminDashboard.tsx",
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/lib/localStore.ts"
-        ],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-60",
-        "summary": "Extend the existing AdminDashboard Withdrawals tab to include 'Approve' and 'Reject' action buttons for each pending withdrawal request, calling `approveWithdrawal` and `rejectWithdrawal` respectively. The Reject action must prompt the admin for a rejection reason before submitting. Both actions must be disabled in demo mode.",
-        "status": "missing",
-        "plannedFiles": [
-          "frontend/src/pages/AdminDashboard.tsx",
-          "frontend/src/hooks/useQueries.ts"
-        ],
-        "matchedFiles": []
+        "matchedFiles": [
+          "frontend/src/pages/SubscriptionPackagesPage.tsx"
+        ]
       }
     ]
   },
   "changedFiles": [
-    "backend/main.mo",
     "build-request.json",
     "feature_evidence.json",
+    "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/backend.d.ts",
-    "frontend/src/backend.ts",
-    "frontend/src/declarations/backend.did.d.ts",
-    "frontend/src/declarations/backend.did.js",
+    "frontend/src/pages/SubscriptionPackagesPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

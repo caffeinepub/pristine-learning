@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { Check, Star, Zap, Crown, Loader2, CreditCard, Infinity } from 'lucide-react';
+import { Check, Star, Zap, Crown, Loader2, CreditCard, Infinity, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,7 @@ import { useActor } from '../hooks/useActor';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import type { ShoppingItem } from '../backend';
 import { subscriptionStore, type SubscriptionPackage } from '../lib/localStore';
+import { isDemoMode } from '../components/DemoModeButton';
 import { toast } from 'sonner';
 
 type CheckoutSession = {
@@ -19,18 +20,18 @@ type CheckoutSession = {
 export default function SubscriptionPackagesPage() {
   const navigate = useNavigate();
   const { identity } = useInternetIdentity();
-  const { actor } = useActor();
+  const { actor, isFetching: actorFetching } = useActor();
   const [checkingOutPackageId, setCheckingOutPackageId] = useState<string | null>(null);
 
   const packages = subscriptionStore.getPackages();
 
-  const { data: isStripeConfigured } = useQuery({
+  const { data: isStripeConfigured, isLoading: stripeCheckLoading } = useQuery({
     queryKey: ['isStripeConfigured'],
     queryFn: async () => {
       if (!actor) return false;
       return actor.isStripeConfigured();
     },
-    enabled: !!actor,
+    enabled: !!actor && !actorFetching,
   });
 
   const createCheckoutSession = useMutation({
@@ -49,6 +50,7 @@ export default function SubscriptionPackagesPage() {
     onSuccess: (session) => {
       if (!session?.url) {
         toast.error('Payment session URL is missing. Please try again.');
+        setCheckingOutPackageId(null);
         return;
       }
       window.location.href = session.url;
@@ -66,11 +68,9 @@ export default function SubscriptionPackagesPage() {
       return;
     }
 
-    const principalId = identity.getPrincipal().toString();
-    const isUnlimited = subscriptionStore.isUnlimited(pkg);
-
-    if (!isStripeConfigured) {
-      // Demo mode: simulate subscription
+    // Only allow demo-mode bypass when explicitly in demo mode
+    if (isDemoMode()) {
+      const principalId = identity.getPrincipal().toString();
       const renewalDate = new Date();
       renewalDate.setMonth(renewalDate.getMonth() + 1);
       subscriptionStore.setUserSubscription(principalId, {
@@ -85,8 +85,21 @@ export default function SubscriptionPackagesPage() {
       return;
     }
 
+    // Guard: wait until Stripe configuration status is known
+    if (stripeCheckLoading || actorFetching) {
+      toast.info('Please wait while we load payment options...');
+      return;
+    }
+
+    // If Stripe is not configured in live mode, show an error — do NOT activate subscription
+    if (!isStripeConfigured) {
+      toast.error('Payment is not yet configured. Please contact the administrator.');
+      return;
+    }
+
     setCheckingOutPackageId(pkg.id);
 
+    const isUnlimited = subscriptionStore.isUnlimited(pkg);
     const sessionDescription = isUnlimited
       ? 'Unlimited tutoring sessions per month'
       : `${pkg.sessionsPerMonth} tutoring sessions per month`;
@@ -128,6 +141,8 @@ export default function SubscriptionPackagesPage() {
       : `${pkg.sessionsPerMonth} sessions per month`;
   };
 
+  const isPageLoading = actorFetching || stripeCheckLoading;
+
   return (
     <div className="min-h-screen bg-background py-16 px-4">
       <div className="max-w-6xl mx-auto">
@@ -140,10 +155,19 @@ export default function SubscriptionPackagesPage() {
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Unlock premium features and accelerate your learning journey with our flexible subscription plans.
           </p>
-          {!isStripeConfigured && (
+
+          {/* Status banners */}
+          {isDemoMode() && (
             <div className="mt-4 inline-flex items-center gap-2 bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 px-4 py-2 rounded-full text-sm border border-amber-200 dark:border-amber-800">
               <span>⚠️</span>
-              <span>Demo mode — payments not yet configured by admin</span>
+              <span>Demo mode — clicking Subscribe will simulate activation without payment</span>
+            </div>
+          )}
+
+          {!isDemoMode() && !isPageLoading && !isStripeConfigured && (
+            <div className="mt-4 inline-flex items-center gap-2 bg-destructive/10 text-destructive px-4 py-2 rounded-full text-sm border border-destructive/30">
+              <AlertCircle className="w-4 h-4" />
+              <span>Payments not yet configured — please contact the administrator</span>
             </div>
           )}
         </div>
@@ -155,6 +179,11 @@ export default function SubscriptionPackagesPage() {
             const isPremium = pkg.id === 'pkg-premium';
             const isUnlimited = subscriptionStore.isUnlimited(pkg);
             const isCheckingOut = checkingOutPackageId === pkg.id && createCheckoutSession.isPending;
+            // Disable buttons while loading or while another package is being checked out
+            const isDisabled =
+              isPageLoading ||
+              isCheckingOut ||
+              (createCheckoutSession.isPending && checkingOutPackageId !== pkg.id);
 
             return (
               <Card
@@ -227,17 +256,27 @@ export default function SubscriptionPackagesPage() {
                     className="w-full"
                     variant={isPremium ? 'default' : isPopular ? 'default' : 'outline'}
                     onClick={() => handleSubscribe(pkg)}
-                    disabled={isCheckingOut || (createCheckoutSession.isPending && checkingOutPackageId !== pkg.id)}
+                    disabled={isDisabled}
                   >
-                    {isCheckingOut ? (
+                    {isPageLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Loading...
+                      </>
+                    ) : isCheckingOut ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                         Processing...
                       </>
+                    ) : isDemoMode() ? (
+                      <>
+                        <Zap className="w-4 h-4 mr-2" />
+                        Demo Subscribe
+                      </>
                     ) : (
                       <>
                         <CreditCard className="w-4 h-4 mr-2" />
-                        {isStripeConfigured ? 'Subscribe with Stripe' : 'Try Demo'}
+                        Subscribe with Stripe
                       </>
                     )}
                   </Button>
@@ -248,7 +287,7 @@ export default function SubscriptionPackagesPage() {
         </div>
 
         {/* Payment Info */}
-        {isStripeConfigured && (
+        {!isDemoMode() && isStripeConfigured && (
           <div className="text-center text-sm text-muted-foreground">
             <p className="flex items-center justify-center gap-2">
               <CreditCard className="w-4 h-4" />

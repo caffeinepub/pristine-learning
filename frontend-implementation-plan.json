@@ -1,131 +1,30 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Full Admin Server Control — Frontend Dashboard Extensions",
+  "title": "Fix subscription activation bypassing payment flow",
   "requirements": [
     {
-      "id": "REQ-56",
-      "summary": "Add System Configuration tab to AdminDashboard with platform commission rate editor, Stripe config fields, and a Danger Zone for user deletion",
+      "id": "REQ-61",
+      "summary": "Remove immediate subscription activation from SubscriptionPackagesPage and enforce Stripe payment flow before subscription is recorded",
       "acceptanceCriteria": [
-        "The System Configuration tab is visible only when the logged-in user has the admin role.",
-        "Saving a new commission rate calls the backend and shows a success/error toast.",
-        "Stripe config fields are pre-populated with current values from getPlatformConfig.",
-        "The Danger Zone delete action shows a confirmation dialog before calling deleteUser."
+        "Clicking 'Subscribe' on any plan in SubscriptionPackagesPage does NOT immediately activate the subscription or update local storage with a new subscription record.",
+        "Clicking 'Subscribe' triggers the Stripe checkout flow (redirects to Stripe or shows Stripe configuration prompt if Stripe is not yet configured).",
+        "The subscription is only recorded as active after the PaymentSuccess page confirms a valid Stripe session ID.",
+        "If Stripe checkout is cancelled or fails, the user is redirected to PaymentFailure and no subscription is recorded.",
+        "In demo mode only, a clearly labelled 'Demo Subscribe' simulation is acceptable — but live mode must always require Stripe payment.",
+        "The 'subscriptions' localStorage store is not written to from SubscriptionPackagesPage directly outside of demo mode.",
+        "Verified by navigating to /subscription as a non-demo authenticated user and confirming that clicking Subscribe redirects to Stripe checkout rather than immediately activating the plan."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/SystemConfigTab.tsx",
-          "operation": "create",
-          "description": "Create a new tab component that fetches current platform configuration via getPlatformConfig and displays: (1) an editable number input for commission rate percentage with a Save button calling setPlatformCommissionRate, (2) Stripe configuration fields (secret key as password input, allowed countries as multi-select) with a Save button calling setStripeConfig, and (3) a 'Danger Zone' section styled with warning colors containing a 'Delete User' button placeholder. All mutating actions must show toast notifications for success/error. In demo mode, all Save buttons and the Danger Zone are disabled with tooltips."
+          "path": "frontend/src/pages/SubscriptionPackagesPage.tsx",
+          "operation": "modify",
+          "description": "Remove any code that directly writes subscription records to localStorage when Subscribe button is clicked in live mode. The Subscribe button must only initiate Stripe checkout via the useCreateCheckoutSession hook (creating ShoppingItem array from plan details and calling mutateAsync, then redirecting to session.url). If Stripe is not configured, show the StripeSetupModal. Preserve demo mode behavior where clearly labeled 'Demo Subscribe' buttons can simulate subscription activation for testing purposes only. Ensure no subscription is marked as active or stored in localStorage until payment confirmation occurs on PaymentSuccess page."
         },
         {
-          "path": "frontend/src/pages/AdminDashboard.tsx",
+          "path": "frontend/src/pages/PaymentSuccess.tsx",
           "operation": "modify",
-          "description": "Import and add the SystemConfigTab component as a new tab in the dashboard's tab navigation. Place it after the existing tabs (e.g., after Analytics or Withdrawals). Ensure the tab is only rendered when the user has admin role. Wire the tab into the existing tab state management so it can be selected and displayed."
-        },
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Add a new React Query hook useGetPlatformConfig that calls actor.getPlatformConfig() to fetch current commission rate and Stripe settings. Add mutation hooks useSetPlatformCommissionRate (calling setPlatformCommissionRate with rateBps as bigint) and useSetStripeConfig (calling setStripeConfig with secretKey and allowedCountries). Ensure all hooks follow the existing pattern with demo mode checks and QueryClient invalidation on success."
-        }
-      ]
-    },
-    {
-      "id": "REQ-57",
-      "summary": "Extend AdminDashboard User Management tab with per-row Change Role dropdown and Delete User button, both disabled in demo mode",
-      "acceptanceCriteria": [
-        "The Change Role dropdown correctly reflects the user's current role and updates it on selection.",
-        "The Delete User button shows a modal asking 'Are you sure? This cannot be undone.' before proceeding.",
-        "Both actions display a success or error toast after completion.",
-        "In demo mode, both controls are visually disabled with a tooltip 'Not available in demo mode'."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/UserManagementTab.tsx",
-          "operation": "modify",
-          "description": "Add two new action controls to each user row in the table: (1) a role dropdown (admin/teacher/student) that calls setUserRole on change, pre-populated with the user's current role, and (2) a 'Delete User' icon button that opens a confirmation dialog before calling deleteUser. Both controls must be disabled when isDemoMode is true, showing a tooltip 'Not available in demo mode'. After a successful action, invalidate the user list query and show a toast. Verify the component's usage instructions for the authorization component before implementing role checks."
-        },
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Add mutation hooks useSetUserRole (calling actor.setUserRole with userId Principal and role UserRole) and useDeleteUser (calling actor.deleteUser with userId Principal). Both hooks must invalidate ['allUserProfiles'] and ['currentUserProfile'] queries on success. Follow existing error handling and toast notification patterns."
-        }
-      ]
-    },
-    {
-      "id": "REQ-58",
-      "summary": "Extend AdminDashboard Bookings tab with per-row status override dropdown and Delete Booking button, both disabled in demo mode",
-      "acceptanceCriteria": [
-        "The status override dropdown reflects the booking's current status and updates it on change.",
-        "The Delete Booking button shows a confirmation dialog before proceeding.",
-        "Success and error states are communicated via toast notifications.",
-        "In demo mode, controls show a 'Not available in demo mode' tooltip and are non-interactive."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/AdminDashboard.tsx",
-          "operation": "modify",
-          "description": "In the Bookings tab section, add two new action controls per booking row: (1) a status dropdown (pending/confirmed/completed/cancelled) calling adminUpdateBookingStatus on change, pre-filled with current status, and (2) a 'Delete Booking' icon button that opens a confirmation dialog before calling adminDeleteBooking. Both must be disabled in demo mode with tooltips. After success, refresh the bookings list and show a toast notification."
-        },
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Add mutation hooks useAdminUpdateBookingStatus (calling actor.adminUpdateBookingStatus with bookingId and BookingStatus enum) and useAdminDeleteBooking (calling actor.adminDeleteBooking with bookingId). On success, invalidate the bookings query. Follow existing mutation patterns for error handling and notifications."
-        }
-      ]
-    },
-    {
-      "id": "REQ-59",
-      "summary": "Add Content Moderation tab to AdminDashboard listing all reviews and messages with Delete buttons, disabled in demo mode",
-      "acceptanceCriteria": [
-        "The Content Moderation tab lists all reviews with teacher name, student name, rating, text, and a Delete button.",
-        "The tab lists all messages with sender, recipient, timestamp, message preview, and a Delete button.",
-        "Deleting a review removes it from the list and from the teacher's public profile immediately (or on next fetch).",
-        "Deleting a message removes it from the list immediately.",
-        "In demo mode, the tab is visible but delete buttons are disabled."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/ContentModerationTab.tsx",
-          "operation": "create",
-          "description": "Create a new tab component with two subsections: (1) 'Reviews' showing a table of all reviews (fetch via a new query hook that aggregates reviews from localStore or a backend query if available) with columns for teacher name, student name, rating, review text, and a 'Delete Review' button calling deleteReview after confirmation; (2) 'Messages' showing a table of all messages (fetch via localStore) with columns for sender, recipient, timestamp, message preview (truncated to 50 chars), and a 'Delete Message' button calling deleteMessage after confirmation. Both delete buttons must be disabled in demo mode with tooltips. Show toast notifications on success/error."
-        },
-        {
-          "path": "frontend/src/pages/AdminDashboard.tsx",
-          "operation": "modify",
-          "description": "Import and add the ContentModerationTab component as a new tab in the dashboard navigation, placed logically near the User Management or Bookings tabs. Wire it into the tab state so it can be selected and displayed. Ensure it is only accessible to admin users."
-        },
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Add mutation hooks useDeleteReview (calling actor.adminDeleteReview with reviewId) and useDeleteMessage (calling actor.adminDeleteMessage with messageId). On success, invalidate relevant queries (reviews list, messages list). Add a query hook useGetAllReviews that aggregates all reviews from localStore.getReviews() for all teachers, returning them as a flat array. Add a query hook useGetAllMessages that returns localStore.getMessages() as a flat array. Follow existing patterns for demo mode checks."
-        },
-        {
-          "path": "frontend/src/lib/localStore.ts",
-          "operation": "modify",
-          "description": "Add helper functions getAllReviews() that iterates all stored reviews and returns them as a flat array with metadata (teacherId, studentId, rating, text, timestamp, reviewId), and getAllMessages() that returns all stored messages as a flat array with sender, recipient, timestamp, and message content. Ensure both functions return empty arrays if no data exists."
-        }
-      ]
-    },
-    {
-      "id": "REQ-60",
-      "summary": "Extend AdminDashboard Withdrawals tab with Approve and Reject buttons for pending withdrawal requests, both disabled in demo mode",
-      "acceptanceCriteria": [
-        "Pending withdrawal rows show both 'Approve' and 'Reject' buttons; already processed rows show the final status badge only.",
-        "Clicking 'Reject' opens a small textarea modal to enter a reason before confirming.",
-        "Successful approval or rejection updates the row status in the UI immediately.",
-        "In demo mode, both buttons are disabled with a 'Not available in demo mode' tooltip."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/AdminDashboard.tsx",
-          "operation": "modify",
-          "description": "In the Withdrawals tab section, add two action buttons per pending withdrawal row: (1) an 'Approve' button calling approveWithdrawal after a confirmation dialog, and (2) a 'Reject' button that opens a modal with a textarea to collect a rejection reason, then calls rejectWithdrawal with the withdrawalId and reason. Both buttons must be hidden for already-processed withdrawals (status !== 'pending'). Disable both in demo mode with tooltips. After success, refresh the withdrawals list and show a toast."
-        },
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Add mutation hooks useApproveWithdrawal (calling actor.approveWithdrawal with withdrawalId) and useRejectWithdrawal (calling actor.rejectWithdrawal with withdrawalId and reason string). On success, invalidate the withdrawals query and show a success toast. Follow existing error handling patterns."
+          "description": "Verify that this page is the only location where subscriptions are activated and written to localStorage after successful Stripe session verification. Ensure the page reads sessionId from URL params, calls getStripeSessionStatus backend method, parses the StripeSessionStatus response, and only writes to the subscriptions localStorage store when status is 'completed' with valid userPrincipal. If session verification fails or status is not completed, show an error and do not activate subscription. Confirm that this is the single source of truth for subscription activation in live mode."
         }
       ]
     }

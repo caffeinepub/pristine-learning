@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 35,
+  "projectStateVersion": 37,
   "summary": "PRISTINE LEARNING — a global online tutoring marketplace connecting teachers and students worldwide. Features three user roles (Admin, Teacher, Student), teacher profile auto-generation from Google Sheets, Zoom & Google Classroom integration, Stripe & Razorpay payments with 90/10 revenue split, AI study assistant supporting international curricula, demo lesson system, in-app messaging, affiliate/referral system, subscription packages, blog, and SEO optimization. Built with Next.js, Node.js/Express, PostgreSQL, scalable to 100,000 users on AWS/Vercel.",
   "architectural_notes": [
     "Tech stack: Next.js frontend, Node.js/Express backend, PostgreSQL database, hosted on AWS or Vercel",
@@ -14,9 +14,10 @@
     "Subscription page missing 'unlimited sessions' display for Premium tier — reported in Version 9",
     "Production URL appears to show 'demo' instead of the live production URL — reported in Version 10",
     "TeacherSearchPage crashes with '<Select.Item /> must have a value prop that is not an empty string' error — reported in Version 12",
-    "Homepage displays duplicate headers — reported in Version 15"
+    "Homepage displays duplicate headers — reported in Version 15",
+    "Subscription activates without triggering payment — clicking Subscribe bypasses the payment flow entirely (reported in Version 17)"
   ],
-  "isFixRequest": false,
+  "isFixRequest": true,
   "existing_features": [
     {
       "id": "feature-implement-three-user-roles-admin-teacher-and-student-stored-in-the-backend-with-role-based-access-control-each-role-must-have-its-own-dedicated-dashboard-view-on-the-frontend-registration-and-login-must-support-internet-identity-oauth-equivalent-on-icp-and-email-password-authentication",
@@ -271,6 +272,14 @@
       "title": "Audit the Homepage component (frontend/src/pages/Homepage.tsx) and the RootLayout/Navbar setup in frontend/src/App.tsx to identify why two headers are rendered on the homepage. Remove the duplicate so that exactly one header/navbar is visible at the top of the homepage at all times.",
       "reqIds": [
         "REQ-49"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-bug-in-subscriptionpackagespage-where-clicking-a-subscribe-button-activates-the-subscription-immediately-without-initiating-a-stripe-payment-flow-the-subscription-must-not-be-activated-or-recorded-in-the-local-store-until-a-successful-stripe-checkout-session-is-confirmed-the-correct-flow-is-1-user-clicks-subscribe-2-app-initiates-a-stripe-checkout-session-or-shows-stripe-configuration-prompt-if-not-configured-3-user-completes-payment-on-stripe-4-paymentsuccess-page-confirms-the-session-and-only-then-activates-the-subscription-remove-any-code-path-that-writes-a-subscription-record-to-localstorage-or-marks-a-plan-as-active-before-payment-confirmation",
+      "title": "Fix the bug in SubscriptionPackagesPage where clicking a 'Subscribe' button activates the subscription immediately without initiating a Stripe payment flow. The subscription must NOT be activated or recorded in the local store until a successful Stripe checkout session is confirmed. The correct flow is: (1) user clicks Subscribe, (2) app initiates a Stripe checkout session (or shows Stripe configuration prompt if not configured), (3) user completes payment on Stripe, (4) PaymentSuccess page confirms the session and only then activates the subscription. Remove any code path that writes a subscription record to localStorage or marks a plan as active before payment confirmation.",
+      "reqIds": [
+        "REQ-61"
       ],
       "version": 1
     }

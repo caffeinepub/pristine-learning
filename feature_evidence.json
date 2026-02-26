@@ -1,4 +1,27 @@
 {
   "kind": "feature_evidence_report",
-  "features": []
+  "features": [
+    {
+      "featureId": "feature-fix-the-bug-in-subscriptionpackagespage-where-clicking-a-subscribe-button-activates-the-subscription-immediately-without-initiating-a-stripe-payment-flow-the-subscription-must-not-be-activated-or-recorded-in-the-local-store-until-a-successful-stripe-checkout-session-is-confirmed-the-correct-flow-is-1-user-clicks-subscribe-2-app-initiates-a-stripe-checkout-session-or-shows-stripe-configuration-prompt-if-not-configured-3-user-completes-payment-on-stripe-4-paymentsuccess-page-confirms-the-session-and-only-then-activates-the-subscription-remove-any-code-path-that-writes-a-subscription-record-to-localstorage-or-marks-a-plan-as-active-before-payment-confirmation",
+      "featureTitle": "Fix the bug in SubscriptionPackagesPage where clicking a 'Subscribe' button activates the subscription immediately without initiating a Stripe payment flow. The subscription must NOT be activated or recorded in the local store until a successful Stripe checkout session is confirmed. The correct flow is: (1) user clicks Subscribe, (2) app initiates a Stripe checkout session (or shows Stripe configuration prompt if not configured), (3) user completes payment on Stripe, (4) PaymentSuccess page confirms the session and only then activates the subscription. Remove any code path that writes a subscription record to localStorage or marks a plan as active before payment confirmation.",
+      "files": [
+        "frontend/src/pages/SubscriptionPackagesPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-61"
+      ],
+      "confidence": "high"
+    }
+  ]
 }

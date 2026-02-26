@@ -1,40 +1,224 @@
 {
   "kind": "build_request",
-  "title": "Add 'Unlimited Sessions' display to Premium subscription tier",
+  "title": "Full Admin Server Control — Backend Endpoints & Admin Dashboard",
   "projectName": "Pristine Learning",
-  "priority": "normal",
+  "priority": "high",
   "requirements": [
     {
-      "id": "REQ-34",
-      "text": "On the SubscriptionPackagesPage, update the Premium subscription tier to prominently display 'Unlimited Sessions' as a key benefit. The feature list for the Premium plan must include 'Unlimited Sessions' as a line item, clearly distinguishing it from the Basic and Standard tiers which show a fixed session count. This text must be visible in the plan card, any comparison table, and any confirmation or summary UI on that page.",
-      "target": "frontend",
+      "id": "REQ-50",
+      "text": "Extend the backend actor to expose an admin-only function `setUserRole(userId: Principal, role: {#admin; #teacher; #student}) : async Result` that allows an admin to change any user's assigned role. Guard the call so only a principal with the #admin role can invoke it.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-6"
         ],
         "quotes": [
-          "you didn't make the unlimited sessions in the subscription page"
+          "complete control over the server as administrator"
         ]
       },
       "acceptanceCriteria": [
-        "The Premium subscription plan card on SubscriptionPackagesPage displays 'Unlimited Sessions' (or equivalent phrasing) as a listed benefit.",
-        "Basic and Standard tiers continue to show their fixed session counts (not 'unlimited').",
-        "The 'Unlimited Sessions' label is visually distinct and clearly readable within the plan card.",
-        "No other subscription tier incorrectly shows 'unlimited sessions'.",
-        "The page renders without errors and the premium plan badge/highlight remains intact."
+        "A non-admin caller receives an #err(\"Unauthorized\") result.",
+        "An admin caller successfully updates the target user's role and the change is reflected in subsequent profile queries.",
+        "The function is accessible from the frontend admin dashboard."
+      ]
+    },
+    {
+      "id": "REQ-51",
+      "text": "Extend the backend actor to expose an admin-only function `deleteUser(userId: Principal) : async Result` that permanently removes a user profile, all associated bookings, activity logs, performance metrics, and review records from stable storage.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "complete control over the server as administrator"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Only a principal with the #admin role can invoke this function; all other callers receive an #err(\"Unauthorized\") result.",
+        "After deletion, querying the removed user's profile returns a null/not-found result.",
+        "All linked bookings, logs, metrics, and reviews for the deleted user are also removed."
+      ]
+    },
+    {
+      "id": "REQ-52",
+      "text": "Extend the backend actor to expose admin-only functions for booking management: `adminUpdateBookingStatus(bookingId: Text, status: BookingStatus) : async Result` to force-update any booking's status, and `adminDeleteBooking(bookingId: Text) : async Result` to permanently remove a booking record.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "complete control over the server as administrator"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Only admin principals can call these functions.",
+        "adminUpdateBookingStatus correctly transitions a booking to any valid status (pending, confirmed, completed, cancelled).",
+        "adminDeleteBooking removes the booking from stable storage and it no longer appears in any query results."
+      ]
+    },
+    {
+      "id": "REQ-53",
+      "text": "Extend the backend actor to expose admin-only content moderation functions: `deleteReview(reviewId: Text) : async Result` to remove any review, and `deleteMessage(messageId: Text) : async Result` to remove any message from any conversation thread.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "complete control over the server as administrator"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Only admin principals can call these functions.",
+        "Deleted reviews no longer appear on the teacher's profile page.",
+        "Deleted messages no longer appear in the conversation thread for either participant."
+      ]
+    },
+    {
+      "id": "REQ-54",
+      "text": "Extend the backend actor to expose admin-only system configuration functions: `setStripeConfig(secretKey: Text, allowedCountries: [Text]) : async Result` (already partially exists — ensure it is admin-gated), `setPlatformCommissionRate(rateBps: Nat) : async Result` to update the platform commission percentage stored in stable state, and `getPlatformConfig() : async PlatformConfig` to retrieve current configuration values.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "complete control over the server as administrator"
+        ]
+      },
+      "acceptanceCriteria": [
+        "All mutating config functions reject non-admin callers.",
+        "setPlatformCommissionRate updates the rate used in future payment calculations.",
+        "getPlatformConfig returns the current Stripe config and commission rate to admin callers only."
+      ]
+    },
+    {
+      "id": "REQ-55",
+      "text": "Extend the backend actor to expose admin-only withdrawal management functions: `approveWithdrawal(withdrawalId: Text) : async Result` and `rejectWithdrawal(withdrawalId: Text, reason: Text) : async Result` that update the withdrawal request status in stable storage and adjust the teacher's wallet balance accordingly on approval.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "complete control over the server as administrator"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Only admin principals can call these functions.",
+        "Approving a withdrawal sets its status to 'approved' and deducts the amount from the teacher's wallet balance.",
+        "Rejecting a withdrawal sets its status to 'rejected' with the provided reason, leaving the wallet balance unchanged."
+      ]
+    },
+    {
+      "id": "REQ-56",
+      "text": "Add a 'System Configuration' tab to the AdminDashboard frontend page. This tab must display and allow editing of: (1) Platform commission rate (shown as a percentage, editable via a number input with a Save button that calls `setPlatformCommissionRate`); (2) Stripe configuration (secret key masked input and allowed-countries multi-select, saving via the existing StripeSetupModal or an inline form); (3) A 'Danger Zone' section containing a clearly styled 'Delete User' action available from the User Management tab's row actions.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "complete control over the server as administrator"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The System Configuration tab is visible only when the logged-in user has the admin role.",
+        "Saving a new commission rate calls the backend and shows a success/error toast.",
+        "Stripe config fields are pre-populated with current values from `getPlatformConfig`.",
+        "The Danger Zone delete action shows a confirmation dialog before calling `deleteUser`."
+      ]
+    },
+    {
+      "id": "REQ-57",
+      "text": "Extend the existing AdminDashboard User Management tab to include row-level admin actions for each user: a 'Change Role' dropdown (admin/teacher/student) that calls `setUserRole`, and a 'Delete User' button that opens a confirmation dialog before calling `deleteUser`. Both actions must be disabled in demo mode.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "complete control over the server as administrator"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The Change Role dropdown correctly reflects the user's current role and updates it on selection.",
+        "The Delete User button shows a modal asking 'Are you sure? This cannot be undone.' before proceeding.",
+        "Both actions display a success or error toast after completion.",
+        "In demo mode, both controls are visually disabled with a tooltip 'Not available in demo mode'."
+      ]
+    },
+    {
+      "id": "REQ-58",
+      "text": "Extend the existing AdminDashboard Bookings tab to include admin override actions per booking row: a status override dropdown (pending/confirmed/completed/cancelled) that calls `adminUpdateBookingStatus`, and a 'Delete Booking' button that calls `adminDeleteBooking` after confirmation. Both actions must be disabled in demo mode.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "complete control over the server as administrator"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The status override dropdown reflects the booking's current status and updates it on change.",
+        "The Delete Booking button shows a confirmation dialog before proceeding.",
+        "Success and error states are communicated via toast notifications.",
+        "In demo mode, controls show a 'Not available in demo mode' tooltip and are non-interactive."
+      ]
+    },
+    {
+      "id": "REQ-59",
+      "text": "Add a 'Content Moderation' tab to the AdminDashboard that lists all reviews and all messages platform-wide (fetched via admin-only backend queries). Each review row must include a 'Delete Review' button calling `deleteReview`. Each message row must include a 'Delete Message' button calling `deleteMessage`. Both must show a confirmation dialog and display success/error toasts. The tab must be disabled in demo mode.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "complete control over the server as administrator"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The Content Moderation tab lists all reviews with teacher name, student name, rating, text, and a Delete button.",
+        "The tab lists all messages with sender, recipient, timestamp, message preview, and a Delete button.",
+        "Deleting a review removes it from the list and from the teacher's public profile immediately (or on next fetch).",
+        "Deleting a message removes it from the list immediately.",
+        "In demo mode, the tab is visible but delete buttons are disabled."
+      ]
+    },
+    {
+      "id": "REQ-60",
+      "text": "Extend the existing AdminDashboard Withdrawals tab to include 'Approve' and 'Reject' action buttons for each pending withdrawal request, calling `approveWithdrawal` and `rejectWithdrawal` respectively. The Reject action must prompt the admin for a rejection reason before submitting. Both actions must be disabled in demo mode.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "complete control over the server as administrator"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Pending withdrawal rows show both 'Approve' and 'Reject' buttons; already processed rows show the final status badge only.",
+        "Clicking 'Reject' opens a small textarea modal to enter a reason before confirming.",
+        "Successful approval or rejection updates the row status in the UI immediately.",
+        "In demo mode, both buttons are disabled with a 'Not available in demo mode' tooltip."
       ]
     }
   ],
   "constraints": [
-    "Do not modify any files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui.",
-    "Do not change the prices of any subscription tier.",
-    "Do not alter the Stripe checkout flow or session count logic — this is a display-only change."
+    "All new backend functions that mutate or read sensitive data must enforce admin-role authorization and return an #err(\"Unauthorized\") result for non-admin callers.",
+    "Do not modify files listed in frontend.immutablePaths.",
+    "Demo mode must never allow destructive backend calls; all destructive UI controls must be visually disabled in demo mode."
   ],
   "nonGoals": [
-    "Changing subscription pricing.",
-    "Modifying backend subscription data models or session-count enforcement logic.",
-    "Updating any dashboard other than SubscriptionPackagesPage.",
-    "Adding new subscription tiers."
+    "Adding new user-facing student or teacher features.",
+    "Changing the existing payment flow or Stripe integration.",
+    "Building a separate admin microservice or external admin panel — all controls remain within the existing single-actor backend and AdminDashboard frontend page.",
+    "Real-time WebSocket-based admin notifications."
   ],
   "imageRequirements": {
     "required": [],

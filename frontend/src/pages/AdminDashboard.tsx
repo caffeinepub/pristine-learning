@@ -1,470 +1,478 @@
-import { useState } from 'react';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import {
-  withdrawalStore, referralStore, subscriptionStore,
-  blogStore, userProfileStore, bookingsStore,
-  type BlogPost, type SubscriptionPackage,
-} from '../lib/localStore';
-import DashboardLayout from '../components/DashboardLayout';
-import ProfileSetupModal from '../components/ProfileSetupModal';
-import StripeSetupModal from '../components/StripeSetupModal';
-import { useIsStripeConfigured, useListTeacherProfiles } from '../hooks/useQueries';
-import { useQueryClient } from '@tanstack/react-query';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { formatTime } from '../utils/formatTime';
-import { useTimezone } from '../hooks/useTimezone';
-import {
-  BarChart3, Users, Calendar, Wallet, Package, FileText,
-  Gift, CheckCircle, XCircle, Plus, Edit, Eye, Mail,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { toast } from 'sonner';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Users,
+  BookOpen,
+  CreditCard,
+  FileText,
+  Gift,
+  BarChart3,
+  Shield,
+  TrendingUp,
+} from 'lucide-react';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
+import UserManagementTab from '../components/UserManagementTab';
+import WeeklyAnalyticsTab from '../components/WeeklyAnalyticsTab';
+import DemoModeBanner from '../components/DemoModeBanner';
+import StripeSetupModal from '../components/StripeSetupModal';
+import { isDemoMode } from '../components/DemoModeButton';
+import { getDemoBookings, getDemoUsers, getDemoWeeklySnapshots } from '../utils/seedDemoData';
 
-const CONTACT_EMAIL = 'pristinelearningofficial@gmail.com';
+// ─── Sub-tab components ───────────────────────────────────────────────────────
 
-export default function AdminDashboard() {
-  const { identity } = useInternetIdentity();
-  const navigate = useNavigate();
-  const qc = useQueryClient();
-  const { timezone } = useTimezone();
+function BookingsTab() {
+  const demoMode = isDemoMode();
+  const bookings = demoMode ? getDemoBookings() : [];
 
-  const principalId = identity?.getPrincipal().toString() || '';
-  const profile = principalId ? userProfileStore.get(principalId) : null;
-  const { data: isStripeConfigured } = useIsStripeConfigured();
-  const { data: teachers = [] } = useListTeacherProfiles();
-  const [stripeModalOpen, setStripeModalOpen] = useState(false);
+  const statusColors: Record<string, string> = {
+    pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+    confirmed: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+    completed: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+    cancelled: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+  };
 
-  const needsProfile = !!identity && !profile;
-
-  if (needsProfile) {
-    return <ProfileSetupModal onComplete={() => qc.invalidateQueries()} />;
-  }
-
-  if (!identity) {
+  if (demoMode && bookings.length > 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <h2 className="font-display text-2xl font-bold mb-3">Login Required</h2>
-          <Button onClick={() => navigate({ to: '/' })} className="btn-primary">Go to Homepage</Button>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">All Bookings</h3>
+          <Badge variant="secondary">{bookings.length} total</Badge>
+        </div>
+        <div className="overflow-x-auto rounded-xl border border-border">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="text-left px-4 py-3 font-medium">Student</th>
+                <th className="text-left px-4 py-3 font-medium">Teacher</th>
+                <th className="text-left px-4 py-3 font-medium">Subject</th>
+                <th className="text-left px-4 py-3 font-medium">Date</th>
+                <th className="text-left px-4 py-3 font-medium">Status</th>
+                <th className="text-left px-4 py-3 font-medium">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bookings.map((b) => (
+                <tr key={b.id} className="border-t border-border hover:bg-muted/30 transition-colors">
+                  <td className="px-4 py-3">{b.studentName}</td>
+                  <td className="px-4 py-3">{b.teacherName}</td>
+                  <td className="px-4 py-3">{b.subject}</td>
+                  <td className="px-4 py-3">{b.date}</td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[b.status] ?? ''}`}>
+                      {b.status.charAt(0).toUpperCase() + b.status.slice(1)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">₹{b.amount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     );
   }
 
-  const allBookings = bookingsStore.getAll();
-  const withdrawals = withdrawalStore.getAll();
-  const pendingWithdrawals = withdrawals.filter(w => w.status === 'pending');
-  const allReferrals = referralStore.getAllCodes();
-  const packages = subscriptionStore.getPackages();
-  const blogPosts = blogStore.getAll();
-
-  const totalRevenue = allBookings
-    .filter(b => b.status === 'completed')
-    .reduce((sum, b) => sum + b.amount, 0);
-  const totalCommission = totalRevenue * 0.1;
-
-  const handleApproveWithdrawal = (id: string) => {
-    withdrawalStore.update(id, 'approved');
-    toast.success('Withdrawal approved.');
-    qc.invalidateQueries();
-  };
-
-  const handleRejectWithdrawal = (id: string) => {
-    withdrawalStore.update(id, 'rejected', 'Rejected by admin');
-    toast.success('Withdrawal rejected.');
-    qc.invalidateQueries();
-  };
-
   return (
-    <DashboardLayout role="admin">
-      <div className="p-6 space-y-6 animate-fade-in">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="font-display text-2xl font-bold">Admin Dashboard</h1>
-            <p className="text-muted-foreground text-sm">Platform overview and management</p>
-          </div>
-          {!isStripeConfigured && (
-            <Button onClick={() => setStripeModalOpen(true)} variant="outline" className="gap-2 border-amber-300 text-amber-700 hover:bg-amber-50">
-              ⚠️ Configure Stripe
-            </Button>
-          )}
-        </div>
-
-        {/* Analytics cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {[
-            { label: 'Total Teachers', value: teachers.length, icon: <Users className="w-5 h-5" />, color: 'text-primary' },
-            { label: 'Total Bookings', value: allBookings.length, icon: <Calendar className="w-5 h-5" />, color: 'text-green-600' },
-            { label: 'Total Revenue', value: `$${totalRevenue.toFixed(0)}`, icon: <Wallet className="w-5 h-5" />, color: 'text-amber-500' },
-            { label: 'Commission', value: `$${totalCommission.toFixed(0)}`, icon: <BarChart3 className="w-5 h-5" />, color: 'text-purple-600' },
-          ].map(stat => (
-            <div key={stat.label} className="bg-white rounded-xl border border-border p-4 shadow-xs">
-              <div className={`${stat.color} mb-2`}>{stat.icon}</div>
-              <p className="text-2xl font-bold">{stat.value}</p>
-              <p className="text-xs text-muted-foreground">{stat.label}</p>
-            </div>
-          ))}
-        </div>
-
-        <Tabs defaultValue="bookings">
-          <TabsList className="flex-wrap h-auto gap-1">
-            <TabsTrigger value="bookings">Bookings</TabsTrigger>
-            <TabsTrigger value="withdrawals">
-              Withdrawals
-              {pendingWithdrawals.length > 0 && (
-                <span className="ml-1.5 w-4 h-4 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
-                  {pendingWithdrawals.length}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
-            <TabsTrigger value="blog">Blog</TabsTrigger>
-            <TabsTrigger value="referrals">Referrals</TabsTrigger>
-          </TabsList>
-
-          {/* Bookings */}
-          <TabsContent value="bookings" className="mt-4">
-            <div className="bg-white rounded-xl border border-border overflow-hidden">
-              <div className="p-4 border-b border-border">
-                <h3 className="font-semibold">All Bookings ({allBookings.length})</h3>
-              </div>
-              {allBookings.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground text-sm">No bookings yet.</div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Student</TableHead>
-                        <TableHead>Teacher</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Time</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {allBookings.slice(0, 20).map(b => (
-                        <TableRow key={b.id}>
-                          <TableCell className="text-sm">{b.studentName}</TableCell>
-                          <TableCell className="text-sm">{b.teacherName}</TableCell>
-                          <TableCell><Badge variant="outline" className="capitalize text-xs">{b.sessionType}</Badge></TableCell>
-                          <TableCell className="text-xs text-muted-foreground">{formatTime(b.scheduledTime, timezone)}</TableCell>
-                          <TableCell className="text-sm font-medium">${b.amount}</TableCell>
-                          <TableCell>
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                              b.status === 'confirmed' ? 'bg-green-100 text-green-700' :
-                              b.status === 'completed' ? 'bg-blue-100 text-blue-700' :
-                              b.status === 'pending' ? 'bg-amber-100 text-amber-700' :
-                              'bg-red-100 text-red-700'
-                            }`}>{b.status}</span>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </div>
-          </TabsContent>
-
-          {/* Withdrawals */}
-          <TabsContent value="withdrawals" className="mt-4">
-            <div className="bg-white rounded-xl border border-border overflow-hidden">
-              <div className="p-4 border-b border-border">
-                <h3 className="font-semibold">Withdrawal Requests ({withdrawals.length})</h3>
-              </div>
-              {withdrawals.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground text-sm">No withdrawal requests.</div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Teacher</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Requested</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {withdrawals.map(w => (
-                        <TableRow key={w.id}>
-                          <TableCell className="text-sm">{w.teacherName}</TableCell>
-                          <TableCell className="text-sm font-medium">${w.amount}</TableCell>
-                          <TableCell className="text-xs text-muted-foreground">
-                            {new Date(w.requestedAt).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell>
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                              w.status === 'approved' ? 'bg-green-100 text-green-700' :
-                              w.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                              'bg-amber-100 text-amber-700'
-                            }`}>{w.status}</span>
-                          </TableCell>
-                          <TableCell>
-                            {w.status === 'pending' && (
-                              <div className="flex gap-2">
-                                <Button size="sm" variant="ghost" className="text-green-600 h-7 px-2"
-                                  onClick={() => handleApproveWithdrawal(w.id)}>
-                                  <CheckCircle className="w-3.5 h-3.5" />
-                                </Button>
-                                <Button size="sm" variant="ghost" className="text-red-600 h-7 px-2"
-                                  onClick={() => handleRejectWithdrawal(w.id)}>
-                                  <XCircle className="w-3.5 h-3.5" />
-                                </Button>
-                              </div>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </div>
-          </TabsContent>
-
-          {/* Subscriptions */}
-          <TabsContent value="subscriptions" className="mt-4">
-            <AdminSubscriptionPanel packages={packages} />
-          </TabsContent>
-
-          {/* Blog */}
-          <TabsContent value="blog" className="mt-4">
-            <AdminBlogPanel posts={blogPosts} />
-          </TabsContent>
-
-          {/* Referrals */}
-          <TabsContent value="referrals" className="mt-4">
-            <div className="bg-white rounded-xl border border-border overflow-hidden">
-              <div className="p-4 border-b border-border">
-                <h3 className="font-semibold">Referral Stats ({allReferrals.length} users)</h3>
-              </div>
-              {allReferrals.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground text-sm">No referral data yet.</div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Code</TableHead>
-                      <TableHead>Referred</TableHead>
-                      <TableHead>Conversions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {allReferrals.map(r => (
-                      <TableRow key={r.userId}>
-                        <TableCell><code className="font-mono text-sm text-primary">{r.code}</code></TableCell>
-                        <TableCell>{r.referredCount}</TableCell>
-                        <TableCell>{r.conversions}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </div>
-          </TabsContent>
-        </Tabs>
-
-        {/* Admin support section */}
-        <div className="bg-muted/30 rounded-xl border border-border p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
-          <div className="w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center text-primary shrink-0">
-            <Mail className="w-4 h-4" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-medium text-sm">Technical Support</p>
-            <p className="text-xs text-muted-foreground">
-              For platform issues, billing questions, or technical assistance, contact the Pristine Learning team.
-            </p>
-          </div>
-          <a
-            href={`mailto:${CONTACT_EMAIL}`}
-            className="text-xs text-primary hover:underline font-medium shrink-0 flex items-center gap-1"
-          >
-            <Mail className="w-3.5 h-3.5" />
-            {CONTACT_EMAIL}
-          </a>
-        </div>
-      </div>
-
-      <StripeSetupModal open={stripeModalOpen} onClose={() => setStripeModalOpen(false)} />
-    </DashboardLayout>
-  );
-}
-
-function AdminSubscriptionPanel({ packages }: { packages: SubscriptionPackage[] }) {
-  const [name, setName] = useState('');
-  const [sessions, setSessions] = useState('');
-  const [price, setPrice] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  const handleCreate = () => {
-    if (!name || !sessions || !price) {
-      toast.error('Please fill all fields.');
-      return;
-    }
-    setSaving(true);
-    const pkg: SubscriptionPackage = {
-      id: `pkg_${Date.now()}`,
-      name,
-      sessionsPerMonth: parseInt(sessions),
-      price: parseFloat(price),
-      features: [`${sessions} sessions/month`, 'Any subject', 'Session recordings'],
-    };
-    subscriptionStore.savePackage(pkg);
-    setName(''); setSessions(''); setPrice('');
-    setSaving(false);
-    toast.success('Package created!');
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="bg-white rounded-xl border border-border p-5">
-        <h3 className="font-semibold mb-4 flex items-center gap-2">
-          <Plus className="w-4 h-4 text-primary" /> Create Subscription Package
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="space-y-1">
-            <Label className="text-xs">Package Name</Label>
-            <Input placeholder="e.g. Premium" value={name} onChange={e => setName(e.target.value)} />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Sessions/Month</Label>
-            <Input type="number" placeholder="8" value={sessions} onChange={e => setSessions(e.target.value)} />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Price ($)</Label>
-            <Input type="number" placeholder="99" value={price} onChange={e => setPrice(e.target.value)} />
-          </div>
-        </div>
-        <Button onClick={handleCreate} disabled={saving} className="mt-3 btn-primary">
-          Create Package
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {packages.map(pkg => (
-          <div key={pkg.id} className="bg-white rounded-xl border border-border p-4">
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="font-semibold">{pkg.name}</h4>
-              <span className="text-lg font-bold text-primary">${pkg.price}</span>
-            </div>
-            <p className="text-xs text-muted-foreground mb-3">{pkg.sessionsPerMonth} sessions/month</p>
-            <ul className="space-y-1">
-              {pkg.features.map(f => (
-                <li key={f} className="text-xs flex items-center gap-1.5">
-                  <CheckCircle className="w-3 h-3 text-green-500" /> {f}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </div>
+    <div className="text-center py-12 text-muted-foreground">
+      <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-40" />
+      <p>Bookings data is managed through the platform.</p>
+      <p className="text-sm mt-1">Enter demo mode to see sample bookings.</p>
     </div>
   );
 }
 
-function AdminBlogPanel({ posts }: { posts: BlogPost[] }) {
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [author, setAuthor] = useState('');
-  const [saving, setSaving] = useState(false);
+function WithdrawalsTab() {
+  return (
+    <div className="text-center py-12 text-muted-foreground">
+      <CreditCard className="w-12 h-12 mx-auto mb-3 opacity-40" />
+      <p>Withdrawal requests from teachers appear here.</p>
+      <p className="text-sm mt-1">No pending withdrawals at this time.</p>
+    </div>
+  );
+}
 
-  const handleCreate = () => {
-    if (!title || !content) {
-      toast.error('Please fill title and content.');
-      return;
-    }
-    setSaving(true);
-    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    const post: BlogPost = {
-      id: `blog_${Date.now()}`,
-      slug,
-      title,
-      content,
-      author: author || 'Admin',
-      coverImageUrl: '',
-      publishDate: new Date().toISOString().split('T')[0],
-      published: true,
-      excerpt: content.substring(0, 150) + '…',
-    };
-    blogStore.save(post);
-    setTitle(''); setContent(''); setAuthor('');
-    setSaving(false);
-    toast.success('Blog post published!');
-  };
+function SubscriptionsTab() {
+  const demoMode = isDemoMode();
+
+  if (demoMode) {
+    const subs: Array<{
+      id: string;
+      userPrincipal: string;
+      packageName: string;
+      startDate: number;
+      endDate: number;
+      isActive: boolean;
+    }> = JSON.parse(localStorage.getItem('demoSubscriptions') || '[]');
+
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Subscriptions</h3>
+          <Badge variant="secondary">{subs.length} total</Badge>
+        </div>
+        <div className="overflow-x-auto rounded-xl border border-border">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="text-left px-4 py-3 font-medium">User</th>
+                <th className="text-left px-4 py-3 font-medium">Package</th>
+                <th className="text-left px-4 py-3 font-medium">Start Date</th>
+                <th className="text-left px-4 py-3 font-medium">End Date</th>
+                <th className="text-left px-4 py-3 font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {subs.map((s) => (
+                <tr key={s.id} className="border-t border-border hover:bg-muted/30 transition-colors">
+                  <td className="px-4 py-3 font-mono text-xs">{s.userPrincipal.replace('-principal', '')}</td>
+                  <td className="px-4 py-3">{s.packageName}</td>
+                  <td className="px-4 py-3">{new Date(s.startDate).toLocaleDateString()}</td>
+                  <td className="px-4 py-3">{new Date(s.endDate).toLocaleDateString()}</td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        s.isActive
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                          : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                      }`}
+                    >
+                      {s.isActive ? 'Active' : 'Expired'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="bg-white rounded-xl border border-border p-5">
-        <h3 className="font-semibold mb-4 flex items-center gap-2">
-          <Plus className="w-4 h-4 text-primary" /> Create Blog Post
-        </h3>
-        <div className="space-y-3">
-          <div className="space-y-1">
-            <Label className="text-xs">Title</Label>
-            <Input placeholder="Post title…" value={title} onChange={e => setTitle(e.target.value)} />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Author</Label>
-            <Input placeholder="Author name" value={author} onChange={e => setAuthor(e.target.value)} />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Content</Label>
-            <Textarea
-              placeholder="Write your blog post content here…"
-              value={content}
-              onChange={e => setContent(e.target.value)}
-              rows={6}
-            />
-          </div>
-        </div>
-        <Button onClick={handleCreate} disabled={saving} className="mt-3 btn-primary">
-          Publish Post
-        </Button>
-      </div>
+    <div className="text-center py-12 text-muted-foreground">
+      <CreditCard className="w-12 h-12 mx-auto mb-3 opacity-40" />
+      <p>Active subscriptions are listed here.</p>
+    </div>
+  );
+}
 
-      <div className="bg-white rounded-xl border border-border overflow-hidden">
-        <div className="p-4 border-b border-border">
-          <h3 className="font-semibold">All Posts ({posts.length})</h3>
+function BlogTab() {
+  return (
+    <div className="text-center py-12 text-muted-foreground">
+      <FileText className="w-12 h-12 mx-auto mb-3 opacity-40" />
+      <p>Blog posts and content management.</p>
+      <p className="text-sm mt-1">Create and manage educational blog content here.</p>
+    </div>
+  );
+}
+
+function ReferralsTab() {
+  const demoMode = isDemoMode();
+  const users = demoMode ? getDemoUsers() : [];
+  const usersWithReferral = users.filter((u) => u.referralCode);
+
+  if (demoMode) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Referral Codes</h3>
+          <Badge variant="secondary">{usersWithReferral.length} codes</Badge>
         </div>
-        {posts.length === 0 ? (
-          <div className="p-8 text-center text-muted-foreground text-sm">No blog posts yet.</div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Author</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {posts.map(p => (
-                <TableRow key={p.id}>
-                  <TableCell className="text-sm font-medium">{p.title}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{p.author}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{p.publishDate}</TableCell>
-                  <TableCell>
-                    <Badge variant={p.published ? 'default' : 'secondary'} className="text-xs">
-                      {p.published ? 'Published' : 'Draft'}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
+        <div className="overflow-x-auto rounded-xl border border-border">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="text-left px-4 py-3 font-medium">User</th>
+                <th className="text-left px-4 py-3 font-medium">Role</th>
+                <th className="text-left px-4 py-3 font-medium">Referral Code</th>
+                <th className="text-left px-4 py-3 font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {usersWithReferral.map((u) => (
+                <tr key={u.principal} className="border-t border-border hover:bg-muted/30 transition-colors">
+                  <td className="px-4 py-3 font-medium">{u.fullName}</td>
+                  <td className="px-4 py-3 capitalize">{u.role}</td>
+                  <td className="px-4 py-3 font-mono text-xs bg-muted/30 rounded">{u.referralCode}</td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        u.isActive
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                          : 'bg-gray-100 text-gray-600'
+                      }`}
+                    >
+                      {u.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                </tr>
               ))}
-            </TableBody>
-          </Table>
-        )}
+            </tbody>
+          </table>
+        </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="text-center py-12 text-muted-foreground">
+      <Gift className="w-12 h-12 mx-auto mb-3 opacity-40" />
+      <p>Referral program statistics and management.</p>
+    </div>
+  );
+}
+
+// ─── Main AdminDashboard ──────────────────────────────────────────────────────
+
+export default function AdminDashboard() {
+  const navigate = useNavigate();
+  const { identity } = useInternetIdentity();
+  const demoMode = isDemoMode();
+  const [stripeModalOpen, setStripeModalOpen] = useState(false);
+
+  // Guard: must be authenticated or in demo mode
+  useEffect(() => {
+    if (!identity && !demoMode) {
+      navigate({ to: '/' });
+    }
+  }, [identity, demoMode, navigate]);
+
+  if (!identity && !demoMode) {
+    return null;
+  }
+
+  const demoUsers = demoMode ? getDemoUsers() : [];
+  const demoSnapshots = demoMode ? getDemoWeeklySnapshots() : [];
+  const demoBookings = demoMode ? getDemoBookings() : [];
+
+  const statsCards = [
+    {
+      label: 'Total Users',
+      value: demoMode ? demoUsers.length : '—',
+      icon: Users,
+      color: 'text-blue-600',
+      bg: 'bg-blue-50 dark:bg-blue-950/30',
+    },
+    {
+      label: 'Total Bookings',
+      value: demoMode ? demoBookings.length : '—',
+      icon: BookOpen,
+      color: 'text-green-600',
+      bg: 'bg-green-50 dark:bg-green-950/30',
+    },
+    {
+      label: 'Weekly Revenue',
+      value:
+        demoMode && demoSnapshots.length > 0
+          ? `₹${demoSnapshots[0].totalRevenue.toLocaleString()}`
+          : '—',
+      icon: TrendingUp,
+      color: 'text-purple-600',
+      bg: 'bg-purple-50 dark:bg-purple-950/30',
+    },
+    {
+      label: 'Active Teachers',
+      value: demoMode
+        ? demoUsers.filter((u) => u.fullName.includes('Teacher') && u.isActive).length
+        : '—',
+      icon: Shield,
+      color: 'text-accent',
+      bg: 'bg-accent/10',
+    },
+  ];
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
+      <Navbar />
+      <main className="flex-1 container mx-auto px-4 py-8 max-w-7xl">
+        {/* Demo Banner */}
+        {demoMode && <DemoModeBanner />}
+
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Shield className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">Admin Dashboard</h1>
+              <p className="text-muted-foreground text-sm">
+                {demoMode ? 'Demo Mode — Pre-seeded data' : 'Platform management and analytics'}
+              </p>
+            </div>
+            {!demoMode && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-auto gap-2 border-amber-300 text-amber-700 hover:bg-amber-50"
+                onClick={() => setStripeModalOpen(true)}
+              >
+                ⚙️ Configure Stripe
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Stats Overview */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {statsCards.map((stat) => (
+            <Card key={stat.label} className="border-border/60">
+              <CardContent className="p-4">
+                <div className={`w-9 h-9 rounded-lg ${stat.bg} flex items-center justify-center mb-3`}>
+                  <stat.icon className={`w-4 h-4 ${stat.color}`} />
+                </div>
+                <div className="text-2xl font-bold text-foreground">{stat.value}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">{stat.label}</div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Main Tabs */}
+        <Tabs defaultValue="users" className="space-y-6">
+          <TabsList className="flex flex-wrap gap-1 h-auto p-1 bg-muted/50 rounded-xl">
+            <TabsTrigger value="users" className="gap-1.5 text-xs sm:text-sm">
+              <Users className="w-3.5 h-3.5" />
+              Users
+            </TabsTrigger>
+            <TabsTrigger value="bookings" className="gap-1.5 text-xs sm:text-sm">
+              <BookOpen className="w-3.5 h-3.5" />
+              Bookings
+            </TabsTrigger>
+            <TabsTrigger value="subscriptions" className="gap-1.5 text-xs sm:text-sm">
+              <CreditCard className="w-3.5 h-3.5" />
+              Subscriptions
+            </TabsTrigger>
+            <TabsTrigger value="withdrawals" className="gap-1.5 text-xs sm:text-sm">
+              <CreditCard className="w-3.5 h-3.5" />
+              Withdrawals
+            </TabsTrigger>
+            <TabsTrigger value="blog" className="gap-1.5 text-xs sm:text-sm">
+              <FileText className="w-3.5 h-3.5" />
+              Blog
+            </TabsTrigger>
+            <TabsTrigger value="referrals" className="gap-1.5 text-xs sm:text-sm">
+              <Gift className="w-3.5 h-3.5" />
+              Referrals
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="gap-1.5 text-xs sm:text-sm">
+              <BarChart3 className="w-3.5 h-3.5" />
+              Analytics
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="users">
+            <Card className="border-border/60">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Users className="w-4 h-4" />
+                  User Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <UserManagementTab demoMode={demoMode} demoUsers={demoUsers} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="bookings">
+            <Card className="border-border/60">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <BookOpen className="w-4 h-4" />
+                  Bookings Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <BookingsTab />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="subscriptions">
+            <Card className="border-border/60">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <CreditCard className="w-4 h-4" />
+                  Subscription Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <SubscriptionsTab />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="withdrawals">
+            <Card className="border-border/60">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <CreditCard className="w-4 h-4" />
+                  Withdrawal Requests
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <WithdrawalsTab />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="blog">
+            <Card className="border-border/60">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <FileText className="w-4 h-4" />
+                  Blog Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <BlogTab />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="referrals">
+            <Card className="border-border/60">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Gift className="w-4 h-4" />
+                  Referral Program
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ReferralsTab />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            <Card className="border-border/60">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <BarChart3 className="w-4 h-4" />
+                  Weekly Analytics
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <WeeklyAnalyticsTab demoMode={demoMode} demoSnapshots={demoSnapshots} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </main>
+      <Footer />
+
+      {/* Stripe Setup Modal — only in live mode */}
+      <StripeSetupModal
+        open={stripeModalOpen}
+        onClose={() => setStripeModalOpen(false)}
+      />
     </div>
   );
 }

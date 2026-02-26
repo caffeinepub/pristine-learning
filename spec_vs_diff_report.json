@@ -1,15 +1,92 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-25T14:44:37.814Z",
-  "summary": "REQ-34 requires the Premium subscription tier on SubscriptionPackagesPage to display 'Unlimited Sessions' as a key benefit, while Basic and Standard tiers continue showing fixed session counts. The diff evidence shows these changes were implemented: the Premium package uses sessionsPerMonth=9999 as a sentinel for unlimited, 'Unlimited sessions/month' was added to its features list, an Infinity icon and 'Unlimited Sessions' label were added to the Premium card, Basic and Standard retain fixed session counts, and an isUnlimited() helper was added. All acceptance criteria appear to be addressed.",
-  "missing_requirements": [],
+  "generatedAt": "2026-02-26T13:44:07.666Z",
+  "summary": "The diff shows modifications to backend/main.mo and project_state.json. The backend file includes type definitions for all required types (BookingStatus, WithdrawalStatus, PlatformConfig, UserProfile, Review, Message, WithdrawalRequest, etc.) and stable storage structures. However, the backend file is truncated and we cannot confirm the actual function implementations. No frontend files are present in the diff at all, meaning all frontend requirements (REQ-56 through REQ-60) appear to be missing.",
+  "missing_requirements": [
+    {
+      "id": "REQ-50",
+      "requirement": "Expose admin-only setUserRole function with authorization guard",
+      "reason": "The backend file is truncated and the actual function implementation cannot be confirmed. No evidence of setUserRole function body is visible.",
+      "evidence": [
+        "backend/main.mo"
+      ]
+    },
+    {
+      "id": "REQ-51",
+      "requirement": "Expose admin-only deleteUser function that removes profile, bookings, logs, metrics, and reviews",
+      "reason": "The backend file is truncated and the actual function implementation cannot be confirmed. No evidence of deleteUser function body is visible.",
+      "evidence": [
+        "backend/main.mo"
+      ]
+    },
+    {
+      "id": "REQ-52",
+      "requirement": "Expose admin-only adminUpdateBookingStatus and adminDeleteBooking functions",
+      "reason": "The backend file is truncated and the actual function implementations cannot be confirmed.",
+      "evidence": [
+        "backend/main.mo"
+      ]
+    },
+    {
+      "id": "REQ-53",
+      "requirement": "Expose admin-only deleteReview and deleteMessage content moderation functions",
+      "reason": "The backend file is truncated and the actual function implementations cannot be confirmed.",
+      "evidence": [
+        "backend/main.mo"
+      ]
+    },
+    {
+      "id": "REQ-54",
+      "requirement": "Expose admin-only setStripeConfig, setPlatformCommissionRate, and getPlatformConfig functions",
+      "reason": "The backend file is truncated and the actual function implementations cannot be confirmed beyond the type and storage declarations.",
+      "evidence": [
+        "backend/main.mo"
+      ]
+    },
+    {
+      "id": "REQ-55",
+      "requirement": "Expose admin-only approveWithdrawal and rejectWithdrawal functions",
+      "reason": "The backend file is truncated and the actual function implementations cannot be confirmed.",
+      "evidence": [
+        "backend/main.mo"
+      ]
+    },
+    {
+      "id": "REQ-56",
+      "requirement": "Add a System Configuration tab to the AdminDashboard frontend page with commission rate editing, Stripe config, and Danger Zone section",
+      "reason": "No frontend files are present in the diff. The AdminDashboard frontend page was not modified.",
+      "evidence": []
+    },
+    {
+      "id": "REQ-57",
+      "requirement": "Extend AdminDashboard User Management tab with row-level Change Role dropdown and Delete User button with demo mode disabling",
+      "reason": "No frontend files are present in the diff.",
+      "evidence": []
+    },
+    {
+      "id": "REQ-58",
+      "requirement": "Extend AdminDashboard Bookings tab with status override dropdown and Delete Booking button with demo mode disabling",
+      "reason": "No frontend files are present in the diff.",
+      "evidence": []
+    },
+    {
+      "id": "REQ-59",
+      "requirement": "Add a Content Moderation tab to the AdminDashboard listing all reviews and messages with delete actions",
+      "reason": "No frontend files are present in the diff.",
+      "evidence": []
+    },
+    {
+      "id": "REQ-60",
+      "requirement": "Extend AdminDashboard Withdrawals tab with Approve and Reject action buttons with rejection reason prompt and demo mode disabling",
+      "reason": "No frontend files are present in the diff.",
+      "evidence": []
+    }
+  ],
   "hallucinated_features": [],
-  "confidence": 0.88,
+  "confidence": 0.55,
   "changed_files": [
-    "frontend-file-summaries.txt",
-    "frontend/src/lib/localStore.ts",
-    "frontend/src/pages/SubscriptionPackagesPage.tsx",
+    "backend/main.mo",
     "project_state.json"
   ]
 }

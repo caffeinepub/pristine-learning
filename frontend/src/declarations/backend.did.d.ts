@@ -10,6 +10,32 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export interface ActivityLog {
+  'metadata' : string,
+  'userId' : Principal,
+  'actionType' : string,
+  'timestamp' : bigint,
+}
+export type BookingStatus = { 'cancelled' : null } |
+  { 'pending' : null } |
+  { 'completed' : null } |
+  { 'confirmed' : null };
+export interface PerformanceMetrics {
+  'completedSessions' : bigint,
+  'withdrawalHistory' : Array<bigint>,
+  'activeSubscription' : string,
+  'reviewsGiven' : bigint,
+  'averageRating' : number,
+  'earnings' : bigint,
+  'cancelledSessions' : bigint,
+  'totalReviews' : bigint,
+  'totalSessions' : bigint,
+}
+export interface PlatformConfig {
+  'allowedCountries' : Array<string>,
+  'commissionRateBps' : bigint,
+  'stripeSecretKey' : string,
+}
 export interface ShoppingItem {
   'productName' : string,
   'currency' : string,
@@ -47,10 +73,29 @@ export interface TransformationOutput {
   'body' : Uint8Array,
   'headers' : Array<http_header>,
 }
-export interface UserProfile { 'name' : string }
+export interface UserProfile {
+  'referralCode' : [] | [string],
+  'role' : UserRole,
+  'fullName' : string,
+  'isActive' : boolean,
+  'email' : string,
+  'registrationTime' : bigint,
+}
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
+export interface WeeklySnapshot {
+  'newSubscriptions' : bigint,
+  'messagesSent' : bigint,
+  'commissionEarned' : bigint,
+  'newTeachers' : bigint,
+  'sessionsBooked' : bigint,
+  'weekIdentifier' : string,
+  'sessionsCompleted' : bigint,
+  'totalRevenue' : bigint,
+  'newUsers' : bigint,
+  'reviewsSubmitted' : bigint,
+}
 export interface _CaffeineStorageCreateCertificateResult {
   'method' : string,
   'blob_hash' : string,
@@ -85,26 +130,57 @@ export interface _SERVICE {
   >,
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  'adminDeleteBooking' : ActorMethod<[string], undefined>,
+  'adminDeleteMessage' : ActorMethod<[string], undefined>,
+  'adminDeleteReview' : ActorMethod<[string], undefined>,
+  'adminUpdateBookingStatus' : ActorMethod<[string, BookingStatus], undefined>,
+  'approveWithdrawal' : ActorMethod<[string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
-  'createAlbum' : ActorMethod<[string, Array<string>], undefined>,
   'createCheckoutSession' : ActorMethod<
     [Array<ShoppingItem>, string, string],
     string
   >,
   'createTeacherProfile' : ActorMethod<[string, TeacherProfile], undefined>,
-  'getAlbums' : ActorMethod<[], Array<string>>,
+  'createWeeklySnapshot' : ActorMethod<[WeeklySnapshot], undefined>,
+  'deleteUser' : ActorMethod<[Principal], undefined>,
+  'getActivityLogsByActionType' : ActorMethod<[string], Array<ActivityLog>>,
+  'getActivityLogsByDateRange' : ActorMethod<
+    [bigint, bigint],
+    Array<ActivityLog>
+  >,
+  'getActivityLogsByUserId' : ActorMethod<[Principal], Array<ActivityLog>>,
+  'getAllActivityLogs' : ActorMethod<[], Array<ActivityLog>>,
+  'getAllPerformanceMetrics' : ActorMethod<[], Array<PerformanceMetrics>>,
+  'getAllUserProfiles' : ActorMethod<[], Array<UserProfile>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
-  'getImages' : ActorMethod<[string], Array<string>>,
+  /**
+   * / Returns a hardcoded demo admin UserProfile for demonstration purposes.
+   */
+  'getDemoAdminProfile' : ActorMethod<[], UserProfile>,
+  'getPerformanceMetrics' : ActorMethod<[Principal], [] | [PerformanceMetrics]>,
+  'getPlatformConfig' : ActorMethod<[], PlatformConfig>,
   'getStripeSessionStatus' : ActorMethod<[string], StripeSessionStatus>,
   'getTeacherProfile' : ActorMethod<[string], [] | [TeacherProfile]>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
+  'getWeeklySnapshot' : ActorMethod<[string], [] | [WeeklySnapshot]>,
+  'getWeeklySnapshots' : ActorMethod<[], Array<WeeklySnapshot>>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'isStripeConfigured' : ActorMethod<[], boolean>,
   'listTeacherProfiles' : ActorMethod<[], Array<TeacherProfile>>,
+  'logActivity' : ActorMethod<[ActivityLog], undefined>,
+  'registerUser' : ActorMethod<[UserProfile], undefined>,
+  'rejectWithdrawal' : ActorMethod<[string, string], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'setPlatformCommissionRate' : ActorMethod<[bigint], undefined>,
+  'setStripeConfig' : ActorMethod<[string, Array<string>], undefined>,
   'setStripeConfiguration' : ActorMethod<[StripeConfiguration], undefined>,
+  'setUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'transform' : ActorMethod<[TransformationInput], TransformationOutput>,
+  'updatePerformanceMetrics' : ActorMethod<
+    [Principal, PerformanceMetrics],
+    undefined
+  >,
   'updateTeacherProfile' : ActorMethod<[string, TeacherProfile], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;

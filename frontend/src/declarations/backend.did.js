@@ -19,6 +19,12 @@ export const _CaffeineStorageRefillResult = IDL.Record({
   'success' : IDL.Opt(IDL.Bool),
   'topped_up_amount' : IDL.Opt(IDL.Nat),
 });
+export const BookingStatus = IDL.Variant({
+  'cancelled' : IDL.Null,
+  'pending' : IDL.Null,
+  'completed' : IDL.Null,
+  'confirmed' : IDL.Null,
+});
 export const UserRole = IDL.Variant({
   'admin' : IDL.Null,
   'user' : IDL.Null,
@@ -44,7 +50,48 @@ export const TeacherProfile = IDL.Record({
   'demoVideoUrl' : IDL.Text,
   'reviewCount' : IDL.Nat,
 });
-export const UserProfile = IDL.Record({ 'name' : IDL.Text });
+export const WeeklySnapshot = IDL.Record({
+  'newSubscriptions' : IDL.Nat,
+  'messagesSent' : IDL.Nat,
+  'commissionEarned' : IDL.Nat,
+  'newTeachers' : IDL.Nat,
+  'sessionsBooked' : IDL.Nat,
+  'weekIdentifier' : IDL.Text,
+  'sessionsCompleted' : IDL.Nat,
+  'totalRevenue' : IDL.Nat,
+  'newUsers' : IDL.Nat,
+  'reviewsSubmitted' : IDL.Nat,
+});
+export const ActivityLog = IDL.Record({
+  'metadata' : IDL.Text,
+  'userId' : IDL.Principal,
+  'actionType' : IDL.Text,
+  'timestamp' : IDL.Int,
+});
+export const PerformanceMetrics = IDL.Record({
+  'completedSessions' : IDL.Nat,
+  'withdrawalHistory' : IDL.Vec(IDL.Nat),
+  'activeSubscription' : IDL.Text,
+  'reviewsGiven' : IDL.Nat,
+  'averageRating' : IDL.Float64,
+  'earnings' : IDL.Nat,
+  'cancelledSessions' : IDL.Nat,
+  'totalReviews' : IDL.Nat,
+  'totalSessions' : IDL.Nat,
+});
+export const UserProfile = IDL.Record({
+  'referralCode' : IDL.Opt(IDL.Text),
+  'role' : UserRole,
+  'fullName' : IDL.Text,
+  'isActive' : IDL.Bool,
+  'email' : IDL.Text,
+  'registrationTime' : IDL.Int,
+});
+export const PlatformConfig = IDL.Record({
+  'allowedCountries' : IDL.Vec(IDL.Text),
+  'commissionRateBps' : IDL.Nat,
+  'stripeSecretKey' : IDL.Text,
+});
 export const StripeSessionStatus = IDL.Variant({
   'completed' : IDL.Record({
     'userPrincipal' : IDL.Opt(IDL.Text),
@@ -103,18 +150,51 @@ export const idlService = IDL.Service({
     ),
   '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+  'adminDeleteBooking' : IDL.Func([IDL.Text], [], []),
+  'adminDeleteMessage' : IDL.Func([IDL.Text], [], []),
+  'adminDeleteReview' : IDL.Func([IDL.Text], [], []),
+  'adminUpdateBookingStatus' : IDL.Func([IDL.Text, BookingStatus], [], []),
+  'approveWithdrawal' : IDL.Func([IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-  'createAlbum' : IDL.Func([IDL.Text, IDL.Vec(IDL.Text)], [], []),
   'createCheckoutSession' : IDL.Func(
       [IDL.Vec(ShoppingItem), IDL.Text, IDL.Text],
       [IDL.Text],
       [],
     ),
   'createTeacherProfile' : IDL.Func([IDL.Text, TeacherProfile], [], []),
-  'getAlbums' : IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
+  'createWeeklySnapshot' : IDL.Func([WeeklySnapshot], [], []),
+  'deleteUser' : IDL.Func([IDL.Principal], [], []),
+  'getActivityLogsByActionType' : IDL.Func(
+      [IDL.Text],
+      [IDL.Vec(ActivityLog)],
+      ['query'],
+    ),
+  'getActivityLogsByDateRange' : IDL.Func(
+      [IDL.Int, IDL.Int],
+      [IDL.Vec(ActivityLog)],
+      ['query'],
+    ),
+  'getActivityLogsByUserId' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Vec(ActivityLog)],
+      ['query'],
+    ),
+  'getAllActivityLogs' : IDL.Func([], [IDL.Vec(ActivityLog)], ['query']),
+  'getAllPerformanceMetrics' : IDL.Func(
+      [],
+      [IDL.Vec(PerformanceMetrics)],
+      ['query'],
+    ),
+  'getAllUserProfiles' : IDL.Func([], [IDL.Vec(UserProfile)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
-  'getImages' : IDL.Func([IDL.Text], [IDL.Vec(IDL.Text)], ['query']),
+  'getDemoAdminProfile' : IDL.Func([], [UserProfile], ['query']),
+  'getPerformanceMetrics' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Opt(PerformanceMetrics)],
+      ['query'],
+    ),
+  'getPlatformConfig' : IDL.Func([], [PlatformConfig], ['query']),
   'getStripeSessionStatus' : IDL.Func([IDL.Text], [StripeSessionStatus], []),
   'getTeacherProfile' : IDL.Func(
       [IDL.Text],
@@ -126,15 +206,32 @@ export const idlService = IDL.Service({
       [IDL.Opt(UserProfile)],
       ['query'],
     ),
+  'getWeeklySnapshot' : IDL.Func(
+      [IDL.Text],
+      [IDL.Opt(WeeklySnapshot)],
+      ['query'],
+    ),
+  'getWeeklySnapshots' : IDL.Func([], [IDL.Vec(WeeklySnapshot)], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'isStripeConfigured' : IDL.Func([], [IDL.Bool], ['query']),
   'listTeacherProfiles' : IDL.Func([], [IDL.Vec(TeacherProfile)], ['query']),
+  'logActivity' : IDL.Func([ActivityLog], [], []),
+  'registerUser' : IDL.Func([UserProfile], [], []),
+  'rejectWithdrawal' : IDL.Func([IDL.Text, IDL.Text], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'setPlatformCommissionRate' : IDL.Func([IDL.Nat], [], []),
+  'setStripeConfig' : IDL.Func([IDL.Text, IDL.Vec(IDL.Text)], [], []),
   'setStripeConfiguration' : IDL.Func([StripeConfiguration], [], []),
+  'setUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'transform' : IDL.Func(
       [TransformationInput],
       [TransformationOutput],
       ['query'],
+    ),
+  'updatePerformanceMetrics' : IDL.Func(
+      [IDL.Principal, PerformanceMetrics],
+      [],
+      [],
     ),
   'updateTeacherProfile' : IDL.Func([IDL.Text, TeacherProfile], [], []),
 });
@@ -152,6 +249,12 @@ export const idlFactory = ({ IDL }) => {
   const _CaffeineStorageRefillResult = IDL.Record({
     'success' : IDL.Opt(IDL.Bool),
     'topped_up_amount' : IDL.Opt(IDL.Nat),
+  });
+  const BookingStatus = IDL.Variant({
+    'cancelled' : IDL.Null,
+    'pending' : IDL.Null,
+    'completed' : IDL.Null,
+    'confirmed' : IDL.Null,
   });
   const UserRole = IDL.Variant({
     'admin' : IDL.Null,
@@ -178,7 +281,48 @@ export const idlFactory = ({ IDL }) => {
     'demoVideoUrl' : IDL.Text,
     'reviewCount' : IDL.Nat,
   });
-  const UserProfile = IDL.Record({ 'name' : IDL.Text });
+  const WeeklySnapshot = IDL.Record({
+    'newSubscriptions' : IDL.Nat,
+    'messagesSent' : IDL.Nat,
+    'commissionEarned' : IDL.Nat,
+    'newTeachers' : IDL.Nat,
+    'sessionsBooked' : IDL.Nat,
+    'weekIdentifier' : IDL.Text,
+    'sessionsCompleted' : IDL.Nat,
+    'totalRevenue' : IDL.Nat,
+    'newUsers' : IDL.Nat,
+    'reviewsSubmitted' : IDL.Nat,
+  });
+  const ActivityLog = IDL.Record({
+    'metadata' : IDL.Text,
+    'userId' : IDL.Principal,
+    'actionType' : IDL.Text,
+    'timestamp' : IDL.Int,
+  });
+  const PerformanceMetrics = IDL.Record({
+    'completedSessions' : IDL.Nat,
+    'withdrawalHistory' : IDL.Vec(IDL.Nat),
+    'activeSubscription' : IDL.Text,
+    'reviewsGiven' : IDL.Nat,
+    'averageRating' : IDL.Float64,
+    'earnings' : IDL.Nat,
+    'cancelledSessions' : IDL.Nat,
+    'totalReviews' : IDL.Nat,
+    'totalSessions' : IDL.Nat,
+  });
+  const UserProfile = IDL.Record({
+    'referralCode' : IDL.Opt(IDL.Text),
+    'role' : UserRole,
+    'fullName' : IDL.Text,
+    'isActive' : IDL.Bool,
+    'email' : IDL.Text,
+    'registrationTime' : IDL.Int,
+  });
+  const PlatformConfig = IDL.Record({
+    'allowedCountries' : IDL.Vec(IDL.Text),
+    'commissionRateBps' : IDL.Nat,
+    'stripeSecretKey' : IDL.Text,
+  });
   const StripeSessionStatus = IDL.Variant({
     'completed' : IDL.Record({
       'userPrincipal' : IDL.Opt(IDL.Text),
@@ -234,18 +378,51 @@ export const idlFactory = ({ IDL }) => {
       ),
     '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+    'adminDeleteBooking' : IDL.Func([IDL.Text], [], []),
+    'adminDeleteMessage' : IDL.Func([IDL.Text], [], []),
+    'adminDeleteReview' : IDL.Func([IDL.Text], [], []),
+    'adminUpdateBookingStatus' : IDL.Func([IDL.Text, BookingStatus], [], []),
+    'approveWithdrawal' : IDL.Func([IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-    'createAlbum' : IDL.Func([IDL.Text, IDL.Vec(IDL.Text)], [], []),
     'createCheckoutSession' : IDL.Func(
         [IDL.Vec(ShoppingItem), IDL.Text, IDL.Text],
         [IDL.Text],
         [],
       ),
     'createTeacherProfile' : IDL.Func([IDL.Text, TeacherProfile], [], []),
-    'getAlbums' : IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
+    'createWeeklySnapshot' : IDL.Func([WeeklySnapshot], [], []),
+    'deleteUser' : IDL.Func([IDL.Principal], [], []),
+    'getActivityLogsByActionType' : IDL.Func(
+        [IDL.Text],
+        [IDL.Vec(ActivityLog)],
+        ['query'],
+      ),
+    'getActivityLogsByDateRange' : IDL.Func(
+        [IDL.Int, IDL.Int],
+        [IDL.Vec(ActivityLog)],
+        ['query'],
+      ),
+    'getActivityLogsByUserId' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Vec(ActivityLog)],
+        ['query'],
+      ),
+    'getAllActivityLogs' : IDL.Func([], [IDL.Vec(ActivityLog)], ['query']),
+    'getAllPerformanceMetrics' : IDL.Func(
+        [],
+        [IDL.Vec(PerformanceMetrics)],
+        ['query'],
+      ),
+    'getAllUserProfiles' : IDL.Func([], [IDL.Vec(UserProfile)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
-    'getImages' : IDL.Func([IDL.Text], [IDL.Vec(IDL.Text)], ['query']),
+    'getDemoAdminProfile' : IDL.Func([], [UserProfile], ['query']),
+    'getPerformanceMetrics' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Opt(PerformanceMetrics)],
+        ['query'],
+      ),
+    'getPlatformConfig' : IDL.Func([], [PlatformConfig], ['query']),
     'getStripeSessionStatus' : IDL.Func([IDL.Text], [StripeSessionStatus], []),
     'getTeacherProfile' : IDL.Func(
         [IDL.Text],
@@ -257,15 +434,32 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Opt(UserProfile)],
         ['query'],
       ),
+    'getWeeklySnapshot' : IDL.Func(
+        [IDL.Text],
+        [IDL.Opt(WeeklySnapshot)],
+        ['query'],
+      ),
+    'getWeeklySnapshots' : IDL.Func([], [IDL.Vec(WeeklySnapshot)], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'isStripeConfigured' : IDL.Func([], [IDL.Bool], ['query']),
     'listTeacherProfiles' : IDL.Func([], [IDL.Vec(TeacherProfile)], ['query']),
+    'logActivity' : IDL.Func([ActivityLog], [], []),
+    'registerUser' : IDL.Func([UserProfile], [], []),
+    'rejectWithdrawal' : IDL.Func([IDL.Text, IDL.Text], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'setPlatformCommissionRate' : IDL.Func([IDL.Nat], [], []),
+    'setStripeConfig' : IDL.Func([IDL.Text, IDL.Vec(IDL.Text)], [], []),
     'setStripeConfiguration' : IDL.Func([StripeConfiguration], [], []),
+    'setUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'transform' : IDL.Func(
         [TransformationInput],
         [TransformationOutput],
         ['query'],
+      ),
+    'updatePerformanceMetrics' : IDL.Func(
+        [IDL.Principal, PerformanceMetrics],
+        [],
+        [],
       ),
     'updateTeacherProfile' : IDL.Func([IDL.Text, TeacherProfile], [], []),
   });

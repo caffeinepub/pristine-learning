@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 21,
+  "projectStateVersion": 35,
   "summary": "PRISTINE LEARNING — a global online tutoring marketplace connecting teachers and students worldwide. Features three user roles (Admin, Teacher, Student), teacher profile auto-generation from Google Sheets, Zoom & Google Classroom integration, Stripe & Razorpay payments with 90/10 revenue split, AI study assistant supporting international curricula, demo lesson system, in-app messaging, affiliate/referral system, subscription packages, blog, and SEO optimization. Built with Next.js, Node.js/Express, PostgreSQL, scalable to 100,000 users on AWS/Vercel.",
   "architectural_notes": [
     "Tech stack: Next.js frontend, Node.js/Express backend, PostgreSQL database, hosted on AWS or Vercel",
@@ -11,10 +11,12 @@
   ],
   "known_issues": [
     "Razorpay payment gateway is not working — reported by user in Version 6",
-    "Find a Teacher button throws 'something went wrong' error — reported in Version 7",
-    "Subscription page missing 'unlimited sessions' display for Premium tier — reported in Version 9"
+    "Subscription page missing 'unlimited sessions' display for Premium tier — reported in Version 9",
+    "Production URL appears to show 'demo' instead of the live production URL — reported in Version 10",
+    "TeacherSearchPage crashes with '<Select.Item /> must have a value prop that is not an empty string' error — reported in Version 12",
+    "Homepage displays duplicate headers — reported in Version 15"
   ],
-  "isFixRequest": true,
+  "isFixRequest": false,
   "existing_features": [
     {
       "id": "feature-implement-three-user-roles-admin-teacher-and-student-stored-in-the-backend-with-role-based-access-control-each-role-must-have-its-own-dedicated-dashboard-view-on-the-frontend-registration-and-login-must-support-internet-identity-oauth-equivalent-on-icp-and-email-password-authentication",
@@ -197,6 +199,78 @@
       "title": "On the SubscriptionPackagesPage, update the Premium subscription tier to prominently display 'Unlimited Sessions' as a key benefit. The feature list for the Premium plan must include 'Unlimited Sessions' as a line item, clearly distinguishing it from the Basic and Standard tiers which show a fixed session count. This text must be visible in the plan card, any comparison table, and any confirmation or summary UI on that page.",
       "reqIds": [
         "REQ-34"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-investigate-and-resolve-the-issue-where-the-production-url-displays-demo-or-routes-to-the-demo-page-instead-of-the-live-homepage-ensure-that-the-application-s-root-route-renders-the-homepage-component-and-that-no-redirect-or-default-route-incorrectly-points-visitors-to-the-demo-walkthrough-page-on-initial-load",
+      "title": "Investigate and resolve the issue where the production URL displays 'demo' (or routes to the /demo page) instead of the live homepage. Ensure that the application's root route '/' renders the Homepage component and that no redirect or default route incorrectly points visitors to the '/demo' walkthrough page on initial load.",
+      "reqIds": [
+        "REQ-35"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-audit-all-shadcn-select-item-selectitem-usages-in-teachersearchpage-and-any-other-components-it-renders-e-g-subject-language-rating-and-availability-filter-dropdowns-ensure-that-no-selectitem-is-ever-rendered-with-an-empty-string-as-its-value-prop-replace-any-empty-string-values-with-a-meaningful-non-empty-sentinel-string-e-g-all-and-update-the-corresponding-filter-logic-to-treat-that-sentinel-as-no-filter-applied-also-audit-bookingmodal-aistudyassistantpage-admindashboard-profilesetupmodal-stripesetupmodal-and-any-other-component-that-uses-selectitem-to-apply-the-same-fix-platform-wide",
+      "title": "Audit all Shadcn <Select.Item> (SelectItem) usages in TeacherSearchPage and any other components it renders (e.g., subject, language, rating, and availability filter dropdowns). Ensure that no SelectItem is ever rendered with an empty string ('') as its value prop. Replace any empty-string values with a meaningful non-empty sentinel string (e.g., 'all') and update the corresponding filter logic to treat that sentinel as 'no filter applied'. Also audit BookingModal, AIStudyAssistantPage, AdminDashboard, ProfileSetupModal, StripeSetupModal, and any other component that uses SelectItem to apply the same fix platform-wide.",
+      "reqIds": [
+        "REQ-37"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-expand-the-admindashboard-frontend-to-include-a-user-management-tab-that-displays-the-full-registered-user-list-students-and-teachers-each-row-must-show-name-role-registration-date-account-status-referral-code-used-and-a-link-to-view-that-user-s-activity-log-and-performance-metrics-include-search-filter-controls-by-role-student-teacher-all-registration-date-range-and-account-status-add-a-toggle-to-enable-disable-any-user-account-calling-the-backend-disable-enable-endpoint",
+      "title": "Expand the AdminDashboard frontend to include a 'User Management' tab that displays the full registered user list (students and teachers). Each row must show: name, role, registration date, account status, referral code used, and a link to view that user's activity log and performance metrics. Include search/filter controls by role (student/teacher/all), registration date range, and account status. Add a toggle to enable/disable any user account (calling the backend disable/enable endpoint).",
+      "reqIds": [
+        "REQ-42"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-performance-activity-detail-panel-in-the-admindashboard-that-the-admin-can-open-for-any-individual-user-for-students-it-displays-sessions-booked-completed-cancelled-reviews-given-and-current-subscription-for-teachers-it-displays-sessions-taught-total-earnings-average-rating-review-count-demo-sessions-conducted-and-withdrawal-history-below-the-metrics-display-the-full-chronological-activity-log-for-that-user-showing-action-type-timestamp-and-metadata",
+      "title": "Add a 'Performance & Activity' detail panel in the AdminDashboard that the admin can open for any individual user. For students it displays: sessions booked, completed, cancelled, reviews given, and current subscription. For teachers it displays: sessions taught, total earnings, average rating, review count, demo sessions conducted, and withdrawal history. Below the metrics, display the full chronological activity log for that user showing action type, timestamp, and metadata.",
+      "reqIds": [
+        "REQ-43"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-weekly-analytics-tab-to-the-admindashboard-that-displays-platform-wide-weekly-usage-reports-the-tab-must-include-a-summary-card-row-showing-key-metrics-for-the-current-most-recent-week-new-users-sessions-booked-sessions-completed-revenue-commission-messages-reviews-new-subscriptions-a-historical-table-listing-all-weekly-snapshots-with-those-same-columns-sorted-by-week-descending-and-a-bar-or-line-chart-visualizing-new-user-registrations-and-sessions-booked-per-week-over-the-last-12-weeks-include-a-refresh-generate-snapshot-button-that-triggers-computing-the-current-week-s-snapshot",
+      "title": "Add a 'Weekly Analytics' tab to the AdminDashboard that displays platform-wide weekly usage reports. The tab must include: a summary card row showing key metrics for the current/most recent week (new users, sessions booked, sessions completed, revenue, commission, messages, reviews, new subscriptions), a historical table listing all weekly snapshots with those same columns sorted by week descending, and a bar or line chart visualizing new user registrations and sessions booked per week over the last 12 weeks. Include a 'Refresh / Generate Snapshot' button that triggers computing the current week's snapshot.",
+      "reqIds": [
+        "REQ-44"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-visible-admin-demo-access-banner-or-card-on-the-login-landing-page-and-on-the-profilesetupmodal-that-displays-ready-to-use-demo-credentials-a-fixed-demo-admin-principal-or-a-one-click-enter-as-admin-demo-button-so-that-any-visitor-can-instantly-access-the-admin-dashboard-without-needing-to-register-or-authenticate-via-internet-identity",
+      "title": "Add a visible 'Admin Demo Access' banner or card on the login/landing page and on the ProfileSetupModal that displays ready-to-use demo credentials (a fixed demo admin principal or a one-click 'Enter as Admin Demo' button) so that any visitor can instantly access the Admin Dashboard without needing to register or authenticate via Internet Identity.",
+      "reqIds": [
+        "REQ-45"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-pre-seed-the-local-data-stores-localstorage-with-realistic-demo-data-when-the-admin-demo-session-is-initiated-demo-data-must-include-at-least-5-student-user-profiles-with-registration-dates-referral-codes-and-statuses-at-least-5-teacher-profiles-with-subjects-ratings-and-earnings-at-least-10-bookings-across-various-statuses-pending-confirmed-completed-cancelled-at-least-5-reviews-at-least-3-messages-per-conversation-thread-at-least-2-subscription-records-and-4-weeks-of-weekly-analytics-snapshots-all-pre-seeded-records-must-be-visible-in-the-admin-dashboard-tabs-user-management-performance-activity-weekly-analytics-bookings-withdrawals",
+      "title": "Pre-seed the local data stores (localStorage) with realistic demo data when the Admin Demo session is initiated. Demo data must include: at least 5 student user profiles with registration dates, referral codes, and statuses; at least 5 teacher profiles with subjects, ratings, and earnings; at least 10 bookings across various statuses (pending, confirmed, completed, cancelled); at least 5 reviews; at least 3 messages per conversation thread; at least 2 subscription records; and 4 weeks of weekly analytics snapshots. All pre-seeded records must be visible in the Admin Dashboard tabs (User Management, Performance & Activity, Weekly Analytics, Bookings, Withdrawals).",
+      "reqIds": [
+        "REQ-46"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-exit-demo-mode-button-in-the-admindashboard-demo-banner-that-clears-the-demo-session-state-from-localstorage-and-redirects-the-user-back-to-the-homepage-cleanly-resetting-the-app-to-its-unauthenticated-state",
+      "title": "Add a 'Exit Demo Mode' button in the AdminDashboard demo banner that clears the demo session state from localStorage and redirects the user back to the homepage, cleanly resetting the app to its unauthenticated state.",
+      "reqIds": [
+        "REQ-48"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-audit-the-homepage-component-frontend-src-pages-homepage-tsx-and-the-rootlayout-navbar-setup-in-frontend-src-app-tsx-to-identify-why-two-headers-are-rendered-on-the-homepage-remove-the-duplicate-so-that-exactly-one-header-navbar-is-visible-at-the-top-of-the-homepage-at-all-times",
+      "title": "Audit the Homepage component (frontend/src/pages/Homepage.tsx) and the RootLayout/Navbar setup in frontend/src/App.tsx to identify why two headers are rendered on the homepage. Remove the duplicate so that exactly one header/navbar is visible at the top of the homepage at all times.",
+      "reqIds": [
+        "REQ-49"
       ],
       "version": 1
     }
@@ -384,6 +458,154 @@
       "id": "AR-33",
       "summary": "Add 'unlimited sessions' feature to the Premium subscription tier on the SubscriptionPackagesPage, clearly displaying unlimited sessions as a benefit of the Premium plan",
       "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-34",
+      "summary": "Perform a thorough re-investigation and definitive fix of the TeacherSearchPage crash. The page must render without any runtime error when navigated to via the 'Find a Teacher' button on the Homepage or directly via the /teachers route. Audit the component's data-fetching logic (useQueries hook, actor calls, and any local store access), add null/undefined guards for all data, and ensure all error boundaries and loading states are handled correctly so the page never throws or displays a 'something went wrong' error regardless of backend response.",
+      "reqIds": [
+        "REQ-36"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-35",
+      "summary": "Admin full data control: view all user sign-up details, track student and teacher performance metrics, monitor user actions/activity on the site, and display weekly auto-updated analytics reports covering platform usage by students and teachers",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-36",
+      "summary": "Extend the backend to store and expose comprehensive user registration data for admin access. For every user who signs up (student or teacher), persist and make queryable: full name, email/identity, role, registration date/time, referral code used (if any), and current account status (active/disabled). The admin must be able to retrieve the full user list with all these fields.",
+      "reqIds": [
+        "REQ-38"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-37",
+      "summary": "Extend the backend to track and store user activity/action logs. Log key user actions including: session bookings (student books a session), session completions, reviews submitted, messages sent, subscription purchases, withdrawal requests (teachers), and login events. Each log entry must store: actor principal/user ID, action type, timestamp, and relevant metadata (e.g., booking ID, amount). Expose an admin-only query to retrieve all activity logs, filterable by user ID, role, action type, and date range.",
+      "reqIds": [
+        "REQ-39"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-38",
+      "summary": "Extend the backend to compute and store performance metrics for students and teachers. For students: track total sessions booked, sessions completed, sessions cancelled, reviews given, and active subscription tier. For teachers: track total sessions taught, total earnings, average rating, total reviews received, demo sessions conducted, and withdrawal history. Expose admin-only queries to fetch performance metrics for any individual user and aggregate platform-wide metrics.",
+      "reqIds": [
+        "REQ-40"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-39",
+      "summary": "Implement a weekly analytics snapshot system in the backend. Every week, compute and persist a snapshot record containing: total new user registrations (students and teachers separately), total sessions booked, total sessions completed, total platform revenue, total commission earned, total messages sent, total reviews submitted, and total new subscriptions. Store each snapshot with a week identifier (ISO week number + year). Expose an admin-only query to retrieve all weekly snapshots sorted by date descending.",
+      "reqIds": [
+        "REQ-41"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-42",
+      "summary": "Expose a backend query endpoint `getDemoAdminProfile` that returns a hardcoded, read-only admin UserProfile record (name: 'Demo Admin', role: #admin, status: #active) so that the frontend demo session can validate against a real backend response without requiring Internet Identity authentication.",
+      "reqIds": [
+        "REQ-47"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-43",
+      "summary": "Admin needs complete control over the server: full server-side admin controls including user management, content moderation, system configuration, and all platform-level operations",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-44",
+      "summary": "Extend the backend actor to expose an admin-only function `setUserRole(userId: Principal, role: {#admin; #teacher; #student}) : async Result` that allows an admin to change any user's assigned role. Guard the call so only a principal with the #admin role can invoke it.",
+      "reqIds": [
+        "REQ-50"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-45",
+      "summary": "Extend the backend actor to expose an admin-only function `deleteUser(userId: Principal) : async Result` that permanently removes a user profile, all associated bookings, activity logs, performance metrics, and review records from stable storage.",
+      "reqIds": [
+        "REQ-51"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-46",
+      "summary": "Extend the backend actor to expose admin-only functions for booking management: `adminUpdateBookingStatus(bookingId: Text, status: BookingStatus) : async Result` to force-update any booking's status, and `adminDeleteBooking(bookingId: Text) : async Result` to permanently remove a booking record.",
+      "reqIds": [
+        "REQ-52"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-47",
+      "summary": "Extend the backend actor to expose admin-only content moderation functions: `deleteReview(reviewId: Text) : async Result` to remove any review, and `deleteMessage(messageId: Text) : async Result` to remove any message from any conversation thread.",
+      "reqIds": [
+        "REQ-53"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-48",
+      "summary": "Extend the backend actor to expose admin-only system configuration functions: `setStripeConfig(secretKey: Text, allowedCountries: [Text]) : async Result` (already partially exists — ensure it is admin-gated), `setPlatformCommissionRate(rateBps: Nat) : async Result` to update the platform commission percentage stored in stable state, and `getPlatformConfig() : async PlatformConfig` to retrieve current configuration values.",
+      "reqIds": [
+        "REQ-54"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-49",
+      "summary": "Extend the backend actor to expose admin-only withdrawal management functions: `approveWithdrawal(withdrawalId: Text) : async Result` and `rejectWithdrawal(withdrawalId: Text, reason: Text) : async Result` that update the withdrawal request status in stable storage and adjust the teacher's wallet balance accordingly on approval.",
+      "reqIds": [
+        "REQ-55"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-50",
+      "summary": "Add a 'System Configuration' tab to the AdminDashboard frontend page. This tab must display and allow editing of: (1) Platform commission rate (shown as a percentage, editable via a number input with a Save button that calls `setPlatformCommissionRate`); (2) Stripe configuration (secret key masked input and allowed-countries multi-select, saving via the existing StripeSetupModal or an inline form); (3) A 'Danger Zone' section containing a clearly styled 'Delete User' action available from the User Management tab's row actions.",
+      "reqIds": [
+        "REQ-56"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-51",
+      "summary": "Extend the existing AdminDashboard User Management tab to include row-level admin actions for each user: a 'Change Role' dropdown (admin/teacher/student) that calls `setUserRole`, and a 'Delete User' button that opens a confirmation dialog before calling `deleteUser`. Both actions must be disabled in demo mode.",
+      "reqIds": [
+        "REQ-57"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-52",
+      "summary": "Extend the existing AdminDashboard Bookings tab to include admin override actions per booking row: a status override dropdown (pending/confirmed/completed/cancelled) that calls `adminUpdateBookingStatus`, and a 'Delete Booking' button that calls `adminDeleteBooking` after confirmation. Both actions must be disabled in demo mode.",
+      "reqIds": [
+        "REQ-58"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-53",
+      "summary": "Add a 'Content Moderation' tab to the AdminDashboard that lists all reviews and all messages platform-wide (fetched via admin-only backend queries). Each review row must include a 'Delete Review' button calling `deleteReview`. Each message row must include a 'Delete Message' button calling `deleteMessage`. Both must show a confirmation dialog and display success/error toasts. The tab must be disabled in demo mode.",
+      "reqIds": [
+        "REQ-59"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-54",
+      "summary": "Extend the existing AdminDashboard Withdrawals tab to include 'Approve' and 'Reject' action buttons for each pending withdrawal request, calling `approveWithdrawal` and `rejectWithdrawal` respectively. The Reject action must prompt the admin for a rejection reason before submitting. Both actions must be disabled in demo mode.",
+      "reqIds": [
+        "REQ-60"
+      ],
       "status": "pending"
     }
   ],

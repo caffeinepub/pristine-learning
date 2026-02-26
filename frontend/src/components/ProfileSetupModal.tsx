@@ -1,119 +1,127 @@
-import { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { userProfileStore, referralStore, type LocalUserProfile } from '../lib/localStore';
-import { useNavigate } from '@tanstack/react-router';
+import { useSaveCallerUserProfile } from '../hooks/useQueries';
+import { UserRole } from '../backend';
+import { isDemoMode } from './DemoModeButton';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { BookOpen, GraduationCap, Users } from 'lucide-react';
+import { User, Mail, Loader2 } from 'lucide-react';
 
-interface Props {
+interface ProfileSetupModalProps {
   onComplete: () => void;
 }
 
-export default function ProfileSetupModal({ onComplete }: Props) {
+export default function ProfileSetupModal({ onComplete }: ProfileSetupModalProps) {
   const { identity } = useInternetIdentity();
-  const navigate = useNavigate();
-  const [name, setName] = useState('');
-  const [role, setRole] = useState<'student' | 'teacher'>('student');
-  const [saving, setSaving] = useState(false);
+  const saveProfile = useSaveCallerUserProfile();
 
-  const principalId = identity?.getPrincipal().toString() || '';
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [error, setError] = useState('');
 
-  const handleSave = async () => {
-    if (!name.trim() || !principalId) return;
-    setSaving(true);
+  // Skip modal entirely in demo mode
+  if (isDemoMode()) return null;
 
-    // Check for referral code in URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const refCode = urlParams.get('ref') || '';
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
 
-    const profile: LocalUserProfile = {
-      principalId,
-      name: name.trim(),
-      role,
-      referralCode: refCode || undefined,
-    };
-    userProfileStore.save(profile);
+    if (!fullName.trim()) {
+      setError('Please enter your full name.');
+      return;
+    }
+    if (!email.trim() || !email.includes('@')) {
+      setError('Please enter a valid email address.');
+      return;
+    }
 
-    // Generate referral code for new user
-    const myRef = referralStore.getCode(principalId);
-    referralStore.registerCode(myRef);
-
-    setSaving(false);
-    onComplete();
-
-    // Navigate to appropriate dashboard
-    if (role === 'teacher') navigate({ to: '/teacher' });
-    else navigate({ to: '/student' });
+    try {
+      await saveProfile.mutateAsync({
+        fullName: fullName.trim(),
+        email: email.trim(),
+        role: UserRole.user,
+        registrationTime: BigInt(Date.now()),
+        referralCode: undefined,
+        isActive: true,
+      });
+      onComplete();
+    } catch (err: any) {
+      setError(err?.message || 'Failed to save profile. Please try again.');
+    }
   };
 
+  // Always open when rendered (caller controls whether to render it)
   return (
     <Dialog open>
       <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
-          <div className="flex items-center gap-2 mb-1">
-            <BookOpen className="w-6 h-6 text-primary" />
-            <DialogTitle className="font-display text-xl">Welcome to Pristine Learning!</DialogTitle>
-          </div>
+          <DialogTitle className="flex items-center gap-2">
+            <User className="w-5 h-5 text-primary" />
+            Complete Your Profile
+          </DialogTitle>
           <DialogDescription>
-            Let's set up your profile to get started.
+            Welcome! Please tell us a bit about yourself to get started.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-5 pt-2">
+        <form onSubmit={handleSubmit} className="space-y-4 mt-2">
           <div className="space-y-2">
-            <Label htmlFor="name">Your Full Name</Label>
-            <Input
-              id="name"
-              placeholder="e.g. Sarah Johnson"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              className="h-11"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>I am joining as a…</Label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setRole('student')}
-                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
-                  role === 'student'
-                    ? 'border-primary bg-primary/5 text-primary'
-                    : 'border-border hover:border-primary/40'
-                }`}
-              >
-                <GraduationCap className="w-7 h-7" />
-                <span className="font-medium text-sm">Student</span>
-                <span className="text-xs text-muted-foreground text-center">Find tutors & learn</span>
-              </button>
-              <button
-                onClick={() => setRole('teacher')}
-                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
-                  role === 'teacher'
-                    ? 'border-primary bg-primary/5 text-primary'
-                    : 'border-border hover:border-primary/40'
-                }`}
-              >
-                <Users className="w-7 h-7" />
-                <span className="font-medium text-sm">Teacher</span>
-                <span className="text-xs text-muted-foreground text-center">Teach & earn</span>
-              </button>
+            <Label htmlFor="fullName">Full Name</Label>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                id="fullName"
+                placeholder="Enter your full name"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="pl-9"
+                autoFocus
+              />
             </div>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="email">Email Address</Label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          </div>
+
+          {error && (
+            <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-lg">{error}</p>
+          )}
+
           <Button
-            onClick={handleSave}
-            disabled={!name.trim() || saving}
-            className="w-full h-11 btn-primary"
+            type="submit"
+            className="w-full gap-2"
+            disabled={saveProfile.isPending}
           >
-            {saving ? 'Setting up…' : 'Get Started →'}
+            {saveProfile.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              'Complete Setup'
+            )}
           </Button>
-        </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

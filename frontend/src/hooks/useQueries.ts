@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import type { UserProfile, WeeklySnapshot, ActivityLog, PerformanceMetrics } from '../backend';
 import { isDemoMode } from '../components/DemoModeButton';
 import {
   getDemoUsers,
@@ -8,9 +7,10 @@ import {
   getDemoPerformanceMetrics,
   getDemoWeeklySnapshots,
 } from '../utils/seedDemoData';
+import type { WeeklySnapshot, UserProfile, ActivityLog, PerformanceMetrics } from '../backend';
 import { Principal } from '@dfinity/principal';
 
-// ---- User Profile Hooks ----
+// ─── User Profile ────────────────────────────────────────────────────────────
 
 export function useGetCallerUserProfile() {
   const { actor, isFetching: actorFetching } = useActor();
@@ -18,7 +18,6 @@ export function useGetCallerUserProfile() {
   const query = useQuery<UserProfile | null>({
     queryKey: ['currentUserProfile'],
     queryFn: async () => {
-      // In demo mode, return the demo admin profile immediately
       if (isDemoMode()) {
         const stored = localStorage.getItem('demoAdminProfile');
         if (stored) {
@@ -27,7 +26,7 @@ export function useGetCallerUserProfile() {
             fullName: p.fullName,
             email: p.email,
             role: p.role as any,
-            registrationTime: BigInt(p.registrationTime),
+            registrationTime: BigInt(p.registrationTime ?? 0),
             referralCode: p.referralCode ?? undefined,
             isActive: p.isActive,
           } as UserProfile;
@@ -62,6 +61,8 @@ export function useSaveCallerUserProfile() {
   });
 }
 
+// ─── Admin: All User Profiles ─────────────────────────────────────────────────
+
 export function useGetAllUserProfiles() {
   const { actor, isFetching: actorFetching } = useActor();
 
@@ -69,7 +70,6 @@ export function useGetAllUserProfiles() {
     queryKey: ['allUserProfiles'],
     queryFn: async () => {
       if (isDemoMode()) {
-        // Return demo users as UserProfile-like objects
         return getDemoUsers().map((u) => ({
           fullName: u.fullName,
           email: u.email,
@@ -86,7 +86,7 @@ export function useGetAllUserProfiles() {
   });
 }
 
-// ---- Activity Log Hooks ----
+// ─── Admin: Activity Logs ─────────────────────────────────────────────────────
 
 export function useGetActivityLogsByUserId(userId: string) {
   const { actor, isFetching: actorFetching } = useActor();
@@ -130,7 +130,7 @@ export function useGetAllActivityLogs() {
   });
 }
 
-// ---- Performance Metrics Hooks ----
+// ─── Admin: Performance Metrics ───────────────────────────────────────────────
 
 export function useGetPerformanceMetrics(userId: string) {
   const { actor, isFetching: actorFetching } = useActor();
@@ -175,7 +175,7 @@ export function useUpdatePerformanceMetrics() {
   });
 }
 
-// ---- Weekly Snapshot Hooks ----
+// ─── Admin: Weekly Snapshots ──────────────────────────────────────────────────
 
 export function useGetWeeklySnapshots() {
   const { actor, isFetching: actorFetching } = useActor();
@@ -219,7 +219,7 @@ export function useCreateWeeklySnapshot() {
   });
 }
 
-// ---- Teacher Profile Hooks ----
+// ─── Teacher Profiles ─────────────────────────────────────────────────────────
 
 export function useListTeacherProfiles() {
   const { actor, isFetching: actorFetching } = useActor();
@@ -247,7 +247,7 @@ export function useGetTeacherProfile(id: string) {
   });
 }
 
-// ---- Stripe Hooks ----
+// ─── Stripe ───────────────────────────────────────────────────────────────────
 
 export function useIsStripeConfigured() {
   const { actor, isFetching: actorFetching } = useActor();
@@ -277,8 +277,38 @@ export function useSetStripeConfiguration() {
   });
 }
 
-// Stub hooks for tabs that reference these (bookings, withdrawals, subscriptions, blog, referrals)
-// These are managed via localStore in the app; stubs prevent import errors
+// ─── Razorpay ─────────────────────────────────────────────────────────────────
+
+export function useGetRazorpayConfig() {
+  const { actor, isFetching: actorFetching } = useActor();
+
+  return useQuery({
+    queryKey: ['razorpayConfig'],
+    queryFn: async () => {
+      if (!actor) return null;
+      return actor.getRazorpayConfig();
+    },
+    enabled: !!actor && !actorFetching,
+  });
+}
+
+export function useSetRazorpayConfig() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ keyId, keySecret }: { keyId: string; keySecret: string }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.setRazorpayConfig(keyId, keySecret);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['razorpayConfig'] });
+    },
+  });
+}
+
+// ─── Stub hooks (managed via localStore) ─────────────────────────────────────
+
 export function useGetAllBookings() { return { data: [], isLoading: false }; }
 export function useGetAllWithdrawals() { return { data: [], isLoading: false }; }
 export function useGetAllSubscriptions() { return { data: [], isLoading: false }; }

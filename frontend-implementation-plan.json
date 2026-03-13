@@ -1,30 +1,106 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix subscription activation bypassing payment flow",
+  "title": "Re-add Razorpay as an official payment gateway with admin credential configuration",
   "requirements": [
     {
-      "id": "REQ-61",
-      "summary": "Remove immediate subscription activation from SubscriptionPackagesPage and enforce Stripe payment flow before subscription is recorded",
+      "id": "REQ-63",
+      "summary": "Add Razorpay Setup form in AdminDashboard System Configuration tab for admin credential configuration",
       "acceptanceCriteria": [
-        "Clicking 'Subscribe' on any plan in SubscriptionPackagesPage does NOT immediately activate the subscription or update local storage with a new subscription record.",
-        "Clicking 'Subscribe' triggers the Stripe checkout flow (redirects to Stripe or shows Stripe configuration prompt if Stripe is not yet configured).",
-        "The subscription is only recorded as active after the PaymentSuccess page confirms a valid Stripe session ID.",
-        "If Stripe checkout is cancelled or fails, the user is redirected to PaymentFailure and no subscription is recorded.",
-        "In demo mode only, a clearly labelled 'Demo Subscribe' simulation is acceptable — but live mode must always require Stripe payment.",
-        "The 'subscriptions' localStorage store is not written to from SubscriptionPackagesPage directly outside of demo mode.",
-        "Verified by navigating to /subscription as a non-demo authenticated user and confirming that clicking Subscribe redirects to Stripe checkout rather than immediately activating the plan."
+        "The Razorpay Setup form is visible in the AdminDashboard under System Configuration.",
+        "Key ID field accepts text; Key Secret field masks input as a password.",
+        "Clicking 'Save Razorpay Config' calls the backend and shows a success toast on completion.",
+        "If the backend call fails, an error toast is shown and no partial state is written.",
+        "The form is fully disabled (inputs + button) when the app is in demo mode.",
+        "Non-admin users cannot access or see this form."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/SubscriptionPackagesPage.tsx",
-          "operation": "modify",
-          "description": "Remove any code that directly writes subscription records to localStorage when Subscribe button is clicked in live mode. The Subscribe button must only initiate Stripe checkout via the useCreateCheckoutSession hook (creating ShoppingItem array from plan details and calling mutateAsync, then redirecting to session.url). If Stripe is not configured, show the StripeSetupModal. Preserve demo mode behavior where clearly labeled 'Demo Subscribe' buttons can simulate subscription activation for testing purposes only. Ensure no subscription is marked as active or stored in localStorage until payment confirmation occurs on PaymentSuccess page."
+          "path": "frontend/src/components/RazorpaySetupModal.tsx",
+          "operation": "create",
+          "description": "Create a modal component for configuring Razorpay credentials with two controlled text inputs (keyId, keySecret as password type) and a Save button. Wire in useMutation calling actor.setRazorpayConfig, with toast notifications on success/error. Disable all inputs and button when demoMode prop is true. Reference the stripe component (StripeSetupModal) for UI patterns, but do not enumerate implementation steps."
         },
         {
-          "path": "frontend/src/pages/PaymentSuccess.tsx",
+          "path": "frontend/src/pages/AdminDashboard.tsx",
           "operation": "modify",
-          "description": "Verify that this page is the only location where subscriptions are activated and written to localStorage after successful Stripe session verification. Ensure the page reads sessionId from URL params, calls getStripeSessionStatus backend method, parses the StripeSessionStatus response, and only writes to the subscriptions localStorage store when status is 'completed' with valid userPrincipal. If session verification fails or status is not completed, show an error and do not activate subscription. Confirm that this is the single source of truth for subscription activation in live mode."
+          "description": "Inside the System Configuration tab (or create it if absent), add a section titled 'Razorpay Setup' that renders the RazorpaySetupModal component. Pass the current demoMode state as a prop to disable the form in demo mode. Ensure this section is only visible to authenticated admin users. Wire the modal into the existing tab structure alongside any Stripe configuration UI."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add two new React Query hooks: useGetRazorpayConfig (query hook calling actor.getRazorpayConfig) and useSetRazorpayConfig (mutation hook calling actor.setRazorpayConfig with keyId and keySecret parameters). Follow existing query/mutation patterns in this file for consistency. Include error handling and query invalidation on successful mutation."
+        }
+      ]
+    },
+    {
+      "id": "REQ-64",
+      "summary": "Re-integrate Razorpay checkout as an official payment option alongside Stripe for session bookings and subscription purchases",
+      "acceptanceCriteria": [
+        "Razorpay checkout script is loaded dynamically only when a payment is initiated.",
+        "If only Razorpay is configured, clicking 'Pay' opens the Razorpay checkout modal.",
+        "If both Stripe and Razorpay are configured, Stripe is the default with a visible Razorpay alternative.",
+        "After a successful Razorpay payment callback, the backend records the transaction with 10% commission and 90% to teacher wallet.",
+        "The booking is marked confirmed only after successful payment confirmation.",
+        "Subscription is activated only after successful Razorpay payment confirmation, not before.",
+        "If neither gateway is configured, the UI prompts the admin to configure a payment method.",
+        "All Razorpay-related UI labels reference 'Razorpay' (not Stripe) clearly."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useRazorpayCheckout.ts",
+          "operation": "create",
+          "description": "Create a custom hook that dynamically loads the Razorpay checkout script (https://checkout.razorpay.com/v1/checkout.js) and provides a function to initiate Razorpay payment. Accept parameters for amount, currency, description, and success/failure callbacks. Use useScript or similar pattern to load the script only when needed. Return loading state and an initiatePayment function that opens the Razorpay modal with the configured keyId from getRazorpayConfig. On successful payment, call the provided success callback with payment details."
+        },
+        {
+          "path": "frontend/src/pages/SubscriptionPackagesPage.tsx",
+          "operation": "modify",
+          "description": "Modify the payment flow to support both Stripe and Razorpay. Query both isStripeConfigured and getRazorpayConfig at component mount. If only Razorpay is configured, show a 'Pay with Razorpay' button that uses useRazorpayCheckout to initiate payment. If both are configured, show Stripe as the primary button and Razorpay as a secondary alternative. If neither is configured, display an admin prompt message. On successful Razorpay payment callback, activate the subscription in local store and call backend capability to record the transaction. Mirror the existing Stripe post-payment logic for consistency."
+        },
+        {
+          "path": "frontend/src/components/BookingModal.tsx",
+          "operation": "modify",
+          "description": "Add Razorpay as a payment option for paid session bookings. Query getRazorpayConfig alongside isStripeConfigured. When user selects a paid session and clicks Book, offer Razorpay checkout if configured (using useRazorpayCheckout hook). On successful Razorpay payment, save the booking with status 'confirmed', store transaction details in local store, and send notifications to both student and teacher. Ensure 10%/90% commission split is applied. If both gateways are configured, default to Stripe with Razorpay as an alternative. Display clear labels distinguishing 'Pay with Razorpay' from 'Pay with Stripe'."
+        },
+        {
+          "path": "frontend/src/utils/paymentGateway.ts",
+          "operation": "create",
+          "description": "Create a utility module with helper functions for determining which payment gateway(s) are available and formatting payment amounts for different gateways. Include a function getAvailablePaymentGateways that returns an array of configured gateways ('stripe' | 'razorpay') based on backend config queries. Add helper functions for currency formatting and gateway-specific validation. This file provides shared logic used by SubscriptionPackagesPage and BookingModal."
+        }
+      ]
+    },
+    {
+      "id": "REQ-65",
+      "summary": "Add Razorpay payment references to i18n translation files for English and Tamil",
+      "acceptanceCriteria": [
+        "en.ts contains a `razorpay` key with all required English strings.",
+        "ta.ts contains a `razorpay` key with Tamil translations for the same keys.",
+        "All Razorpay UI text in the admin config form and checkout flow uses t('razorpay.*') calls rather than hardcoded strings."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/i18n/en.ts",
+          "operation": "modify",
+          "description": "Add a new top-level 'razorpay' object containing English translations for: setup form labels ('keyId', 'keySecret', 'saveConfig', 'setupTitle'), status messages ('configSuccess', 'configError', 'notConfigured'), and checkout UI copy ('payWithRazorpay', 'razorpayCheckout', 'processingPayment'). Follow the existing nested object structure and naming conventions in this file. Ensure all keys match the usage in RazorpaySetupModal, BookingModal, and SubscriptionPackagesPage."
+        },
+        {
+          "path": "frontend/src/i18n/ta.ts",
+          "operation": "modify",
+          "description": "Add a new top-level 'razorpay' object with Tamil translations matching all keys defined in en.ts. Translate setup form labels, status messages, and checkout UI copy into Tamil while preserving the same key structure. Ensure consistency with the existing Tamil translation style and conventions in this file."
+        },
+        {
+          "path": "frontend/src/components/RazorpaySetupModal.tsx",
+          "operation": "modify",
+          "description": "Replace all hardcoded English strings in the RazorpaySetupModal component with t('razorpay.*') calls using the useLanguage hook. Apply translations to field labels, button text, modal title, and toast messages. Verify that all user-facing text is translatable and references the razorpay namespace added to en.ts and ta.ts."
+        },
+        {
+          "path": "frontend/src/pages/SubscriptionPackagesPage.tsx",
+          "operation": "modify",
+          "description": "Replace hardcoded Razorpay-related strings ('Pay with Razorpay', 'Processing payment...', etc.) with t('razorpay.*') calls. Ensure payment button labels, processing states, and error messages use the translation keys defined in the razorpay namespace. Apply the same translation pattern used for existing Stripe payment UI."
+        },
+        {
+          "path": "frontend/src/components/BookingModal.tsx",
+          "operation": "modify",
+          "description": "Replace hardcoded Razorpay payment strings in the booking flow with t('razorpay.*') calls. Apply translations to payment method selection labels, checkout button text, and success/error messages. Maintain consistency with the translation approach used in SubscriptionPackagesPage."
         }
       ]
     }

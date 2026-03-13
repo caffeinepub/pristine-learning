@@ -1,35 +1,94 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-26T13:53:33.290Z",
+  "generatedAt": "2026-02-26T14:21:21.726Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 1,
-    "implemented": 1,
+    "total": 4,
+    "implemented": 3,
     "items": [
       {
-        "id": "REQ-61",
-        "summary": "Fix the bug in SubscriptionPackagesPage where clicking a 'Subscribe' button activates the subscription immediately without initiating a Stripe payment flow. The subscription must NOT be activated or recorded in the local store until a successful Stripe checkout session is confirmed. The correct flow is: (1) user clicks Subscribe, (2) app initiates a Stripe checkout session (or shows Stripe configuration prompt if not configured), (3) user completes payment on Stripe, (4) PaymentSuccess page confirms the session and only then activates the subscription. Remove any code path that writes a subscription record to localStorage or marks a plan as active before payment confirmation.",
+        "id": "REQ-62",
+        "summary": "Extend the backend actor to store Razorpay configuration in stable state. Add an admin-only function `setRazorpayConfig(keyId: Text, keySecret: Text) : async Result` that saves the Razorpay key ID and secret, and a function `getRazorpayConfig() : async RazorpayConfig` that returns the stored config (secret masked or omitted for non-admin callers). Guard both functions so only a principal with the #admin role can write config.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-63",
+        "summary": "Add a 'Razorpay Setup' section inside the AdminDashboard System Configuration tab (or create one if absent). The section must include a form with two fields — 'Key ID' (text input) and 'Key Secret' (password input, masked) — and a 'Save Razorpay Config' button that calls the backend `setRazorpayConfig` function. On success, show a confirmation toast. On failure, show an error toast. This form is only accessible to authenticated admins and must be fully disabled in demo mode.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/SubscriptionPackagesPage.tsx",
-          "frontend/src/pages/PaymentSuccess.tsx"
+          "frontend/src/components/RazorpaySetupModal.tsx",
+          "frontend/src/pages/AdminDashboard.tsx",
+          "frontend/src/hooks/useQueries.ts"
         ],
         "matchedFiles": [
-          "frontend/src/pages/SubscriptionPackagesPage.tsx"
+          "frontend/src/components/RazorpaySetupModal.tsx",
+          "frontend/src/pages/AdminDashboard.tsx",
+          "frontend/src/hooks/useQueries.ts"
+        ]
+      },
+      {
+        "id": "REQ-64",
+        "summary": "Re-integrate Razorpay checkout as an official payment option alongside Stripe for session bookings and subscription purchases. On the frontend, when a student proceeds to pay, fetch the active payment gateway config from the backend: if Razorpay is configured (keyId present), offer Razorpay checkout using the stored keyId; if Stripe is configured, offer Stripe checkout; if both are configured, default to Stripe with Razorpay as a secondary option. Load the Razorpay checkout script dynamically (https://checkout.razorpay.com/v1/checkout.js). Upon successful Razorpay payment, record the transaction in the backend (booking confirmed, 10% commission, 90% to teacher wallet) mirroring the existing Stripe post-payment logic.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useRazorpayCheckout.ts",
+          "frontend/src/pages/SubscriptionPackagesPage.tsx",
+          "frontend/src/components/BookingModal.tsx",
+          "frontend/src/utils/paymentGateway.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useRazorpayCheckout.ts",
+          "frontend/src/pages/SubscriptionPackagesPage.tsx",
+          "frontend/src/components/BookingModal.tsx",
+          "frontend/src/utils/paymentGateway.ts"
+        ]
+      },
+      {
+        "id": "REQ-65",
+        "summary": "Add Razorpay payment references back into the i18n translation files (en.ts and ta.ts) under a `razorpay` namespace, covering: setup form labels ('Key ID', 'Key Secret', 'Save Razorpay Config'), status messages ('Razorpay configured successfully', 'Failed to save Razorpay config'), and checkout UI copy ('Pay with Razorpay'). Use the existing i18n pattern from frontend/src/i18n/en.ts and frontend/src/i18n/ta.ts.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/i18n/en.ts",
+          "frontend/src/i18n/ta.ts",
+          "frontend/src/components/RazorpaySetupModal.tsx",
+          "frontend/src/pages/SubscriptionPackagesPage.tsx",
+          "frontend/src/components/BookingModal.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/i18n/en.ts",
+          "frontend/src/i18n/ta.ts",
+          "frontend/src/components/RazorpaySetupModal.tsx",
+          "frontend/src/pages/SubscriptionPackagesPage.tsx",
+          "frontend/src/components/BookingModal.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/components/BookingModal.tsx",
+    "frontend/src/components/RazorpaySetupModal.tsx",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/hooks/useRazorpayCheckout.ts",
+    "frontend/src/i18n/en.ts",
+    "frontend/src/i18n/ta.ts",
+    "frontend/src/pages/AdminDashboard.tsx",
     "frontend/src/pages/SubscriptionPackagesPage.tsx",
+    "frontend/src/utils/paymentGateway.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

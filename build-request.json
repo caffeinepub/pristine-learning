@@ -1,42 +1,104 @@
 {
   "kind": "build_request",
-  "title": "Fix subscription activation bypassing payment flow",
+  "title": "Re-add Razorpay as an official payment gateway with admin credential configuration",
   "projectName": "Pristine Learning",
-  "priority": "high",
+  "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-61",
-      "text": "Fix the bug in SubscriptionPackagesPage where clicking a 'Subscribe' button activates the subscription immediately without initiating a Stripe payment flow. The subscription must NOT be activated or recorded in the local store until a successful Stripe checkout session is confirmed. The correct flow is: (1) user clicks Subscribe, (2) app initiates a Stripe checkout session (or shows Stripe configuration prompt if not configured), (3) user completes payment on Stripe, (4) PaymentSuccess page confirms the session and only then activates the subscription. Remove any code path that writes a subscription record to localStorage or marks a plan as active before payment confirmation.",
-      "target": "frontend",
+      "id": "REQ-62",
+      "text": "Extend the backend actor to store Razorpay configuration in stable state. Add an admin-only function `setRazorpayConfig(keyId: Text, keySecret: Text) : async Result` that saves the Razorpay key ID and secret, and a function `getRazorpayConfig() : async RazorpayConfig` that returns the stored config (secret masked or omitted for non-admin callers). Guard both functions so only a principal with the #admin role can write config.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-recent"
+          "msg-1"
         ],
         "quotes": [
-          "I clicked on the subscription, and it activated without asking to pay the amount"
+          "administrator has a username and password for linking razorpay"
         ]
       },
       "acceptanceCriteria": [
-        "Clicking 'Subscribe' on any plan in SubscriptionPackagesPage does NOT immediately activate the subscription or update local storage with a new subscription record.",
-        "Clicking 'Subscribe' triggers the Stripe checkout flow (redirects to Stripe or shows Stripe configuration prompt if Stripe is not yet configured).",
-        "The subscription is only recorded as active after the PaymentSuccess page confirms a valid Stripe session ID.",
-        "If Stripe checkout is cancelled or fails, the user is redirected to PaymentFailure and no subscription is recorded.",
-        "In demo mode only, a clearly labelled 'Demo Subscribe' simulation is acceptable — but live mode must always require Stripe payment.",
-        "The 'subscriptions' localStorage store is not written to from SubscriptionPackagesPage directly outside of demo mode.",
-        "Verified by navigating to /subscription as a non-demo authenticated user and confirming that clicking Subscribe redirects to Stripe checkout rather than immediately activating the plan."
+        "A `RazorpayConfig` type exists in the backend with fields `keyId: Text` and `keySecret: Text`.",
+        "`setRazorpayConfig` can only be called by an admin principal; non-admin calls return an error.",
+        "`getRazorpayConfig` returns the stored keyId (keySecret omitted or masked for non-admin).",
+        "Config persists across canister upgrades via stable storage."
+      ]
+    },
+    {
+      "id": "REQ-63",
+      "text": "Add a 'Razorpay Setup' section inside the AdminDashboard System Configuration tab (or create one if absent). The section must include a form with two fields — 'Key ID' (text input) and 'Key Secret' (password input, masked) — and a 'Save Razorpay Config' button that calls the backend `setRazorpayConfig` function. On success, show a confirmation toast. On failure, show an error toast. This form is only accessible to authenticated admins and must be fully disabled in demo mode.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "administrator has a username and password for linking razorpay",
+          "ADD razorpay officially"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The Razorpay Setup form is visible in the AdminDashboard under System Configuration.",
+        "Key ID field accepts text; Key Secret field masks input as a password.",
+        "Clicking 'Save Razorpay Config' calls the backend and shows a success toast on completion.",
+        "If the backend call fails, an error toast is shown and no partial state is written.",
+        "The form is fully disabled (inputs + button) when the app is in demo mode.",
+        "Non-admin users cannot access or see this form."
+      ]
+    },
+    {
+      "id": "REQ-64",
+      "text": "Re-integrate Razorpay checkout as an official payment option alongside Stripe for session bookings and subscription purchases. On the frontend, when a student proceeds to pay, fetch the active payment gateway config from the backend: if Razorpay is configured (keyId present), offer Razorpay checkout using the stored keyId; if Stripe is configured, offer Stripe checkout; if both are configured, default to Stripe with Razorpay as a secondary option. Load the Razorpay checkout script dynamically (https://checkout.razorpay.com/v1/checkout.js). Upon successful Razorpay payment, record the transaction in the backend (booking confirmed, 10% commission, 90% to teacher wallet) mirroring the existing Stripe post-payment logic.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "ADD razorpay officially"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Razorpay checkout script is loaded dynamically only when a payment is initiated.",
+        "If only Razorpay is configured, clicking 'Pay' opens the Razorpay checkout modal.",
+        "If both Stripe and Razorpay are configured, Stripe is the default with a visible Razorpay alternative.",
+        "After a successful Razorpay payment callback, the backend records the transaction with 10% commission and 90% to teacher wallet.",
+        "The booking is marked confirmed only after successful payment confirmation.",
+        "Subscription is activated only after successful Razorpay payment confirmation, not before.",
+        "If neither gateway is configured, the UI prompts the admin to configure a payment method.",
+        "All Razorpay-related UI labels reference 'Razorpay' (not Stripe) clearly."
+      ]
+    },
+    {
+      "id": "REQ-65",
+      "text": "Add Razorpay payment references back into the i18n translation files (en.ts and ta.ts) under a `razorpay` namespace, covering: setup form labels ('Key ID', 'Key Secret', 'Save Razorpay Config'), status messages ('Razorpay configured successfully', 'Failed to save Razorpay config'), and checkout UI copy ('Pay with Razorpay'). Use the existing i18n pattern from frontend/src/i18n/en.ts and frontend/src/i18n/ta.ts.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "ADD razorpay officially"
+        ]
+      },
+      "acceptanceCriteria": [
+        "en.ts contains a `razorpay` key with all required English strings.",
+        "ta.ts contains a `razorpay` key with Tamil translations for the same keys.",
+        "All Razorpay UI text in the admin config form and checkout flow uses t('razorpay.*') calls rather than hardcoded strings."
       ]
     }
   ],
   "constraints": [
-    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui.",
-    "Demo mode simulation of subscription activation (in DemoModeButton/seedDemoData) is acceptable and must not be broken.",
-    "All payment processing must go through Stripe only — no Razorpay references."
+    "Razorpay Key Secret must never be exposed in any frontend bundle or non-admin API response.",
+    "Do not remove or break the existing Stripe payment flow; Razorpay must be additive.",
+    "Immutable paths (frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui) must not be modified.",
+    "All Motoko logic must remain in backend/main.mo (single-actor architecture)."
   ],
   "nonGoals": [
-    "Changing subscription plan prices or features.",
-    "Modifying the Stripe backend integration or PaymentSuccess verification logic unless directly needed to fix this bug.",
-    "Adding new subscription tiers.",
-    "Changing the UI design or layout of SubscriptionPackagesPage beyond the fix."
+    "Replacing Stripe with Razorpay — both gateways must coexist.",
+    "Adding any payment gateway other than Stripe and Razorpay.",
+    "Implementing Razorpay webhooks (payment confirmation is handled client-side via the Razorpay success callback).",
+    "Changing the 10%/90% commission split logic.",
+    "Adding Razorpay to the public-facing marketing pages or demo walkthrough."
   ],
   "imageRequirements": {
     "required": [],

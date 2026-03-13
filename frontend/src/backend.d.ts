@@ -7,6 +7,10 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
+export interface RazorpayConfig {
+    keyId: string;
+    keySecret: string;
+}
 export interface TransformationOutput {
     status: bigint;
     body: Uint8Array;
@@ -139,6 +143,10 @@ export interface backendInterface {
     getDemoAdminProfile(): Promise<UserProfile>;
     getPerformanceMetrics(userId: Principal): Promise<PerformanceMetrics | null>;
     getPlatformConfig(): Promise<PlatformConfig>;
+    /**
+     * / Returns the Razorpay configuration with the secret masked for non-admin callers.
+     */
+    getRazorpayConfig(): Promise<RazorpayConfig | null>;
     getStripeSessionStatus(sessionId: string): Promise<StripeSessionStatus>;
     getTeacherProfile(id: string): Promise<TeacherProfile | null>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
@@ -152,6 +160,10 @@ export interface backendInterface {
     rejectWithdrawal(withdrawalId: string, reason: string): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     setPlatformCommissionRate(rateBps: bigint): Promise<void>;
+    /**
+     * / Sets the Razorpay configuration (admin-only).
+     */
+    setRazorpayConfig(keyId: string, keySecret: string): Promise<void>;
     setStripeConfig(secretKey: string, allowedCountries: Array<string>): Promise<void>;
     setStripeConfiguration(config: StripeConfiguration): Promise<void>;
     setUserRole(userId: Principal, role: UserRole): Promise<void>;

@@ -1,297 +1,391 @@
 import React, { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { Check, Star, Zap, Crown, Loader2, CreditCard, Infinity, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { useActor } from '../hooks/useActor';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import type { ShoppingItem } from '../backend';
-import { subscriptionStore, type SubscriptionPackage } from '../lib/localStore';
-import { isDemoMode } from '../components/DemoModeButton';
 import { toast } from 'sonner';
+import { useIsStripeConfigured, useGetRazorpayConfig } from '../hooks/useQueries';
+import { useRazorpayCheckout } from '../hooks/useRazorpayCheckout';
+import { subscriptionStore } from '../lib/localStore';
+import { isDemoMode } from '../components/DemoModeButton';
+import { getAvailablePaymentGateways, inrToPaise } from '../utils/paymentGateway';
+import { useActor } from '../hooks/useActor';
+import { useInternetIdentity } from '../hooks/useInternetIdentity';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Check, Loader2, CreditCard, Star, Zap, Crown, AlertCircle, Infinity } from 'lucide-react';
 
-type CheckoutSession = {
+interface SubscriptionPackage {
   id: string;
-  url: string;
-};
+  name: string;
+  price: number; // INR
+  priceInPaise: number;
+  sessionsPerMonth: number;
+  features: string[];
+  popular?: boolean;
+  icon: React.ReactNode;
+}
+
+const packages: SubscriptionPackage[] = [
+  {
+    id: 'basic',
+    name: 'Basic',
+    price: 999,
+    priceInPaise: inrToPaise(999),
+    sessionsPerMonth: 4,
+    features: [
+      '4 sessions per month',
+      'Access to all teachers',
+      'Session recordings',
+      'Email support',
+    ],
+    icon: <Star className="h-6 w-6" />,
+  },
+  {
+    id: 'standard',
+    name: 'Standard',
+    price: 1999,
+    priceInPaise: inrToPaise(1999),
+    sessionsPerMonth: 9,
+    features: [
+      '9 sessions per month',
+      'Access to all teachers',
+      'Session recordings',
+      'Priority support',
+      'AI Study Assistant',
+    ],
+    popular: true,
+    icon: <Zap className="h-6 w-6" />,
+  },
+  {
+    id: 'premium',
+    name: 'Premium',
+    price: 3499,
+    priceInPaise: inrToPaise(3499),
+    sessionsPerMonth: 9999,
+    features: [
+      'Unlimited sessions',
+      'Access to all teachers',
+      'Session recordings',
+      '24/7 priority support',
+      'AI Study Assistant',
+      'Exclusive content',
+    ],
+    icon: <Crown className="h-6 w-6" />,
+  },
+];
 
 export default function SubscriptionPackagesPage() {
   const navigate = useNavigate();
+  const { actor } = useActor();
   const { identity } = useInternetIdentity();
-  const { actor, isFetching: actorFetching } = useActor();
-  const [checkingOutPackageId, setCheckingOutPackageId] = useState<string | null>(null);
+  const [processingPackageId, setProcessingPackageId] = useState<string | null>(null);
 
-  const packages = subscriptionStore.getPackages();
+  const { data: stripeConfigured, isLoading: stripeLoading } = useIsStripeConfigured();
+  const { data: razorpayConfig, isLoading: razorpayLoading } = useGetRazorpayConfig();
+  const { initiatePayment, isLoading: razorpayCheckoutLoading } = useRazorpayCheckout();
 
-  const { data: isStripeConfigured, isLoading: stripeCheckLoading } = useQuery({
-    queryKey: ['isStripeConfigured'],
-    queryFn: async () => {
-      if (!actor) return false;
-      return actor.isStripeConfigured();
-    },
-    enabled: !!actor && !actorFetching,
-  });
+  const demoMode = isDemoMode();
+  const principalId = identity?.getPrincipal().toString() ?? '';
 
-  const createCheckoutSession = useMutation({
-    mutationFn: async (items: ShoppingItem[]): Promise<CheckoutSession> => {
-      if (!actor) throw new Error('Actor not available');
+  // Read current subscription for the logged-in user
+  const currentSubscription = principalId
+    ? subscriptionStore.getUserSubscription(principalId)
+    : null;
+
+  const availableGateways = getAvailablePaymentGateways(
+    !!stripeConfigured,
+    razorpayConfig?.keyId
+  );
+
+  const isLoadingGateways = stripeLoading || razorpayLoading;
+  const hasStripe = availableGateways.includes('stripe');
+  const hasRazorpay = availableGateways.includes('razorpay');
+  const hasAnyGateway = availableGateways.length > 0;
+
+  const handleStripeCheckout = async (pkg: SubscriptionPackage) => {
+    if (!actor) {
+      toast.error('Please log in to subscribe.');
+      return;
+    }
+    if (!stripeConfigured) {
+      toast.error('Stripe is not configured. Please contact the administrator.');
+      return;
+    }
+
+    setProcessingPackageId(pkg.id + '_stripe');
+    try {
       const baseUrl = `${window.location.protocol}//${window.location.host}`;
-      const successUrl = `${baseUrl}/payment-success`;
+      const successUrl = `${baseUrl}/payment-success?package=${pkg.id}`;
       const cancelUrl = `${baseUrl}/payment-failure`;
-      const result = await actor.createCheckoutSession(items, successUrl, cancelUrl);
-      const session = JSON.parse(result) as CheckoutSession;
-      if (!session?.url) {
-        throw new Error('Stripe session missing url');
-      }
-      return session;
-    },
-    onSuccess: (session) => {
-      if (!session?.url) {
-        toast.error('Payment session URL is missing. Please try again.');
-        setCheckingOutPackageId(null);
-        return;
-      }
+
+      const sessionJson = await actor.createCheckoutSession(
+        [
+          {
+            productName: `${pkg.name} Subscription`,
+            currency: 'inr',
+            quantity: BigInt(1),
+            priceInCents: BigInt(pkg.priceInPaise),
+            productDescription: `Pristine Learning ${pkg.name} plan - ${
+              pkg.sessionsPerMonth === 9999 ? 'Unlimited' : pkg.sessionsPerMonth
+            } sessions/month`,
+          },
+        ],
+        successUrl,
+        cancelUrl
+      );
+
+      const session = JSON.parse(sessionJson);
+      if (!session?.url) throw new Error('Stripe session missing URL');
       window.location.href = session.url;
-    },
-    onError: (error: Error) => {
-      toast.error(`Checkout failed: ${error.message}`);
-      setCheckingOutPackageId(null);
-    },
-  });
+    } catch (err) {
+      toast.error('Failed to initiate Stripe checkout. Please try again.');
+      setProcessingPackageId(null);
+    }
+  };
 
-  const handleSubscribe = async (pkg: SubscriptionPackage) => {
-    if (!identity) {
-      toast.error('Please log in to subscribe');
-      navigate({ to: '/' });
+  const handleRazorpayCheckout = async (pkg: SubscriptionPackage) => {
+    if (!principalId) {
+      toast.error('Please log in to subscribe.');
       return;
     }
 
-    // Only allow demo-mode bypass when explicitly in demo mode
-    if (isDemoMode()) {
-      const principalId = identity.getPrincipal().toString();
-      const renewalDate = new Date();
-      renewalDate.setMonth(renewalDate.getMonth() + 1);
-      subscriptionStore.setUserSubscription(principalId, {
-        packageId: pkg.id,
-        packageName: pkg.name,
-        sessionsRemaining: pkg.sessionsPerMonth,
-        renewalDate: renewalDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
-        active: true,
-      });
-      toast.success(`Demo: Subscribed to ${pkg.name} plan!`);
-      navigate({ to: '/student' });
-      return;
-    }
+    setProcessingPackageId(pkg.id + '_razorpay');
 
-    // Guard: wait until Stripe configuration status is known
-    if (stripeCheckLoading || actorFetching) {
-      toast.info('Please wait while we load payment options...');
-      return;
-    }
-
-    // If Stripe is not configured in live mode, show an error — do NOT activate subscription
-    if (!isStripeConfigured) {
-      toast.error('Payment is not yet configured. Please contact the administrator.');
-      return;
-    }
-
-    setCheckingOutPackageId(pkg.id);
-
-    const isUnlimited = subscriptionStore.isUnlimited(pkg);
-    const sessionDescription = isUnlimited
-      ? 'Unlimited tutoring sessions per month'
-      : `${pkg.sessionsPerMonth} tutoring sessions per month`;
-
-    const items: ShoppingItem[] = [
-      {
-        productName: `${pkg.name} Subscription`,
-        currency: 'usd',
-        quantity: BigInt(1),
-        priceInCents: BigInt(Math.round(pkg.price * 100)),
-        productDescription: sessionDescription,
+    await initiatePayment({
+      amount: pkg.priceInPaise,
+      currency: 'INR',
+      name: 'Pristine Learning',
+      description: `${pkg.name} Subscription - ${
+        pkg.sessionsPerMonth === 9999 ? 'Unlimited' : pkg.sessionsPerMonth
+      } sessions/month`,
+      onSuccess: (response) => {
+        // Activate subscription only after successful payment
+        const renewalDate = new Date();
+        renewalDate.setMonth(renewalDate.getMonth() + 1);
+        subscriptionStore.setUserSubscription(principalId, {
+          packageId: pkg.id,
+          packageName: pkg.name,
+          sessionsRemaining: pkg.sessionsPerMonth,
+          renewalDate: renewalDate.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+          }),
+          active: true,
+        });
+        toast.success(`Payment successful via Razorpay! ${pkg.name} plan activated.`);
+        setProcessingPackageId(null);
+        navigate({ to: '/student' });
       },
-    ];
-
-    await createCheckoutSession.mutateAsync(items);
+      onFailure: (error) => {
+        if (error !== 'Payment was cancelled.') {
+          toast.error(`Razorpay payment failed: ${error}`);
+        }
+        setProcessingPackageId(null);
+      },
+    });
   };
 
-  const getPackageIcon = (id: string) => {
-    switch (id) {
-      case 'pkg-basic': return <Star className="w-6 h-6" />;
-      case 'pkg-standard': return <Zap className="w-6 h-6" />;
-      case 'pkg-premium': return <Crown className="w-6 h-6" />;
-      default: return <Star className="w-6 h-6" />;
+  const handleDemoSubscribe = (pkg: SubscriptionPackage) => {
+    if (!principalId) {
+      toast.error('Please log in to subscribe.');
+      return;
     }
+    const renewalDate = new Date();
+    renewalDate.setMonth(renewalDate.getMonth() + 1);
+    subscriptionStore.setUserSubscription(principalId, {
+      packageId: pkg.id,
+      packageName: pkg.name,
+      sessionsRemaining: pkg.sessionsPerMonth,
+      renewalDate: renewalDate.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      }),
+      active: true,
+    });
+    toast.success(`Demo: ${pkg.name} plan activated!`);
+    navigate({ to: '/student' });
   };
-
-  const getPackageColor = (id: string) => {
-    switch (id) {
-      case 'pkg-basic': return 'border-border';
-      case 'pkg-standard': return 'border-primary ring-2 ring-primary';
-      case 'pkg-premium': return 'border-accent ring-2 ring-accent';
-      default: return 'border-border';
-    }
-  };
-
-  const getSessionsLabel = (pkg: SubscriptionPackage): string => {
-    return subscriptionStore.isUnlimited(pkg)
-      ? 'Unlimited sessions per month'
-      : `${pkg.sessionsPerMonth} sessions per month`;
-  };
-
-  const isPageLoading = actorFetching || stripeCheckLoading;
 
   return (
-    <div className="min-h-screen bg-background py-16 px-4">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-background py-12">
+      <div className="container mx-auto px-4 max-w-6xl">
         {/* Header */}
         <div className="text-center mb-12">
-          <Badge variant="secondary" className="mb-4">Subscription Plans</Badge>
-          <h1 className="text-4xl font-bold text-foreground mb-4">
-            Choose Your Learning Plan
-          </h1>
+          <h1 className="text-4xl font-bold text-foreground mb-3">Subscription Packages</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Unlock premium features and accelerate your learning journey with our flexible subscription plans.
+            Choose the plan that works best for you and start learning with the best teachers.
           </p>
-
-          {/* Status banners */}
-          {isDemoMode() && (
+          {currentSubscription && (
+            <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium">
+              <Check className="h-4 w-4" />
+              Current plan: {currentSubscription.packageName}
+            </div>
+          )}
+          {demoMode && (
             <div className="mt-4 inline-flex items-center gap-2 bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 px-4 py-2 rounded-full text-sm border border-amber-200 dark:border-amber-800">
               <span>⚠️</span>
               <span>Demo mode — clicking Subscribe will simulate activation without payment</span>
             </div>
           )}
-
-          {!isDemoMode() && !isPageLoading && !isStripeConfigured && (
-            <div className="mt-4 inline-flex items-center gap-2 bg-destructive/10 text-destructive px-4 py-2 rounded-full text-sm border border-destructive/30">
-              <AlertCircle className="w-4 h-4" />
-              <span>Payments not yet configured — please contact the administrator</span>
-            </div>
-          )}
         </div>
 
+        {/* Gateway Status */}
+        {!demoMode && !isLoadingGateways && !hasAnyGateway && (
+          <div className="mb-8 flex items-center gap-3 p-4 rounded-lg border border-destructive/30 bg-destructive/5 text-destructive max-w-2xl mx-auto">
+            <AlertCircle className="h-5 w-5 flex-shrink-0" />
+            <p className="text-sm">
+              No payment gateway is configured. Please contact the administrator to set up Stripe or Razorpay.
+            </p>
+          </div>
+        )}
+
         {/* Packages Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {packages.map((pkg) => {
-            const isPopular = pkg.id === 'pkg-standard';
-            const isPremium = pkg.id === 'pkg-premium';
-            const isUnlimited = subscriptionStore.isUnlimited(pkg);
-            const isCheckingOut = checkingOutPackageId === pkg.id && createCheckoutSession.isPending;
-            // Disable buttons while loading or while another package is being checked out
-            const isDisabled =
-              isPageLoading ||
-              isCheckingOut ||
-              (createCheckoutSession.isPending && checkingOutPackageId !== pkg.id);
+            const isCurrentPlan = currentSubscription?.packageId === pkg.id && currentSubscription?.active;
+            const isProcessingStripe = processingPackageId === pkg.id + '_stripe';
+            const isProcessingRazorpay = processingPackageId === pkg.id + '_razorpay';
+            const isProcessing = isProcessingStripe || isProcessingRazorpay;
+            const isUnlimited = pkg.sessionsPerMonth === 9999;
 
             return (
               <Card
                 key={pkg.id}
-                className={`relative flex flex-col transition-all duration-200 hover:shadow-lg ${getPackageColor(pkg.id)}`}
+                className={`relative flex flex-col transition-shadow hover:shadow-lg ${
+                  pkg.popular ? 'border-primary shadow-md ring-1 ring-primary/20' : 'border-border'
+                }`}
               >
-                {isPopular && (
+                {pkg.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-primary text-primary-foreground px-4 py-1">
+                    <Badge className="bg-primary text-primary-foreground px-3 py-0.5 text-xs font-semibold">
                       Most Popular
                     </Badge>
                   </div>
                 )}
 
-                {isPremium && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-accent text-accent-foreground px-4 py-1">
-                      Best Value
-                    </Badge>
-                  </div>
-                )}
-
-                <CardHeader className="text-center pb-4">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 ${
-                    isPremium
-                      ? 'bg-accent text-accent-foreground'
-                      : isPopular
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground'
+                <CardHeader className="pb-4">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-3 ${
+                    pkg.popular ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
                   }`}>
-                    {getPackageIcon(pkg.id)}
+                    {pkg.icon}
                   </div>
-                  <CardTitle className="text-xl">{pkg.name}</CardTitle>
-
-                  {/* Sessions label — highlight "Unlimited" for Premium */}
+                  <CardTitle className="text-xl text-foreground">{pkg.name}</CardTitle>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-bold text-foreground">₹{pkg.price}</span>
+                    <span className="text-muted-foreground text-sm">/month</span>
+                  </div>
                   {isUnlimited ? (
-                    <div className="flex items-center justify-center gap-1.5 mt-1">
-                      <Infinity className="w-4 h-4 text-accent" />
-                      <span className="text-sm font-semibold text-accent">Unlimited Sessions</span>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <Infinity className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-semibold text-primary">Unlimited Sessions</span>
                     </div>
                   ) : (
-                    <CardDescription>{getSessionsLabel(pkg)}</CardDescription>
+                    <CardDescription>{pkg.sessionsPerMonth} sessions per month</CardDescription>
                   )}
-
-                  <div className="mt-4">
-                    <span className="text-4xl font-bold text-foreground">${pkg.price}</span>
-                    <span className="text-muted-foreground">/month</span>
-                  </div>
                 </CardHeader>
 
                 <CardContent className="flex-1">
-                  <ul className="space-y-3">
-                    {pkg.features.map((feature, idx) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <Check className={`w-4 h-4 mt-0.5 flex-shrink-0 ${isPremium ? 'text-accent' : 'text-green-500'}`} />
-                        <span className={`text-sm ${
-                          isPremium && idx === 0
-                            ? 'text-foreground font-semibold'
-                            : 'text-muted-foreground'
-                        }`}>
-                          {feature}
-                        </span>
+                  <ul className="space-y-2">
+                    {pkg.features.map((feature, i) => (
+                      <li key={i} className="flex items-center gap-2 text-sm text-foreground">
+                        <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                        {feature}
                       </li>
                     ))}
                   </ul>
                 </CardContent>
 
-                <CardFooter className="pt-4">
-                  <Button
-                    className="w-full"
-                    variant={isPremium ? 'default' : isPopular ? 'default' : 'outline'}
-                    onClick={() => handleSubscribe(pkg)}
-                    disabled={isDisabled}
-                  >
-                    {isPageLoading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Loading...
-                      </>
-                    ) : isCheckingOut ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Processing...
-                      </>
-                    ) : isDemoMode() ? (
-                      <>
-                        <Zap className="w-4 h-4 mr-2" />
-                        Demo Subscribe
-                      </>
-                    ) : (
-                      <>
-                        <CreditCard className="w-4 h-4 mr-2" />
-                        Subscribe with Stripe
-                      </>
-                    )}
-                  </Button>
+                <CardFooter className="flex flex-col gap-2 pt-4">
+                  {isCurrentPlan ? (
+                    <Button variant="outline" className="w-full" disabled>
+                      <Check className="mr-2 h-4 w-4" />
+                      Current Plan
+                    </Button>
+                  ) : demoMode ? (
+                    <Button
+                      className="w-full"
+                      onClick={() => handleDemoSubscribe(pkg)}
+                      disabled={isProcessing}
+                    >
+                      Subscribe (Demo)
+                    </Button>
+                  ) : isLoadingGateways ? (
+                    <Button className="w-full" disabled>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Loading...
+                    </Button>
+                  ) : (
+                    <>
+                      {/* Stripe button — primary when available */}
+                      {hasStripe && (
+                        <Button
+                          className="w-full"
+                          onClick={() => handleStripeCheckout(pkg)}
+                          disabled={isProcessing || razorpayCheckoutLoading}
+                        >
+                          {isProcessingStripe ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              <CreditCard className="mr-2 h-4 w-4" />
+                              Pay with Stripe
+                            </>
+                          )}
+                        </Button>
+                      )}
+
+                      {/* Razorpay button — secondary when Stripe also available */}
+                      {hasRazorpay && (
+                        <Button
+                          variant={hasStripe ? 'outline' : 'default'}
+                          className="w-full"
+                          onClick={() => handleRazorpayCheckout(pkg)}
+                          disabled={isProcessing || razorpayCheckoutLoading}
+                        >
+                          {isProcessingRazorpay ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Processing payment...
+                            </>
+                          ) : (
+                            <>
+                              <CreditCard className="mr-2 h-4 w-4" />
+                              Pay with Razorpay
+                            </>
+                          )}
+                        </Button>
+                      )}
+
+                      {/* No gateway configured */}
+                      {!hasAnyGateway && (
+                        <Button className="w-full" disabled>
+                          <AlertCircle className="mr-2 h-4 w-4" />
+                          No Payment Gateway
+                        </Button>
+                      )}
+                    </>
+                  )}
                 </CardFooter>
               </Card>
             );
           })}
         </div>
 
-        {/* Payment Info */}
-        {!isDemoMode() && isStripeConfigured && (
-          <div className="text-center text-sm text-muted-foreground">
+        {/* Payment Gateway Info */}
+        {!demoMode && hasAnyGateway && (
+          <div className="mt-8 text-center text-sm text-muted-foreground">
             <p className="flex items-center justify-center gap-2">
-              <CreditCard className="w-4 h-4" />
-              Secure payment powered by Stripe. Cancel anytime.
+              <CreditCard className="h-4 w-4" />
+              Secure payments powered by{' '}
+              {hasStripe && hasRazorpay
+                ? 'Stripe & Razorpay'
+                : hasStripe
+                ? 'Stripe'
+                : 'Razorpay'}
             </p>
           </div>
         )}

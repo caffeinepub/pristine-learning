@@ -36,6 +36,7 @@ export interface PlatformConfig {
   'commissionRateBps' : bigint,
   'stripeSecretKey' : string,
 }
+export interface RazorpayConfig { 'keyId' : string, 'keySecret' : string }
 export interface ShoppingItem {
   'productName' : string,
   'currency' : string,
@@ -160,6 +161,10 @@ export interface _SERVICE {
   'getDemoAdminProfile' : ActorMethod<[], UserProfile>,
   'getPerformanceMetrics' : ActorMethod<[Principal], [] | [PerformanceMetrics]>,
   'getPlatformConfig' : ActorMethod<[], PlatformConfig>,
+  /**
+   * / Returns the Razorpay configuration with the secret masked for non-admin callers.
+   */
+  'getRazorpayConfig' : ActorMethod<[], [] | [RazorpayConfig]>,
   'getStripeSessionStatus' : ActorMethod<[string], StripeSessionStatus>,
   'getTeacherProfile' : ActorMethod<[string], [] | [TeacherProfile]>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
@@ -173,6 +178,10 @@ export interface _SERVICE {
   'rejectWithdrawal' : ActorMethod<[string, string], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'setPlatformCommissionRate' : ActorMethod<[bigint], undefined>,
+  /**
+   * / Sets the Razorpay configuration (admin-only).
+   */
+  'setRazorpayConfig' : ActorMethod<[string, string], undefined>,
   'setStripeConfig' : ActorMethod<[string, Array<string>], undefined>,
   'setStripeConfiguration' : ActorMethod<[StripeConfiguration], undefined>,
   'setUserRole' : ActorMethod<[Principal, UserRole], undefined>,

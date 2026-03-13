@@ -1,13 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Fix a bug in SubscriptionPackagesPage where clicking "Subscribe" immediately activates the subscription without going through Stripe payment.
+**Goal:** Re-add Razorpay as an official payment gateway alongside Stripe, with admin credential configuration stored securely in the backend.
 
 **Planned changes:**
-- Remove the code path in SubscriptionPackagesPage that writes a subscription record to localStorage or marks a plan as active upon clicking "Subscribe".
-- Clicking "Subscribe" must initiate a Stripe checkout session (or show a Stripe configuration prompt if Stripe is not configured).
-- The subscription is only recorded as active after the PaymentSuccess page confirms a valid Stripe session ID.
-- If Stripe checkout is cancelled or fails, the user is redirected to PaymentFailure and no subscription is recorded.
-- Demo mode subscription simulation (via DemoModeButton/seedDemoData) remains intact and unaffected.
+- Add `RazorpayConfig` type and stable storage in the backend; add admin-only `setRazorpayConfig` and `getRazorpayConfig` functions (key secret masked for non-admin callers)
+- Add a "Razorpay Setup" form (Key ID + Key Secret fields, Save button) in the AdminDashboard System Configuration tab; disabled in demo mode, restricted to admins; shows success/error toasts
+- Re-integrate Razorpay checkout dynamically (loading checkout.js on demand) for session bookings and subscriptions; if only Razorpay is configured it is the sole option, if both gateways are configured Stripe is default with Razorpay as secondary; post-payment logic records transaction with 10% commission / 90% to teacher wallet, mirroring Stripe flow
+- Add `razorpay` namespace to `en.ts` and `ta.ts` i18n files covering setup form labels, status messages, and checkout UI copy; all Razorpay UI text uses `t('razorpay.*')` calls
 
-**User-visible outcome:** Non-demo authenticated users clicking "Subscribe" are redirected to Stripe checkout instead of having their subscription immediately activated. The subscription only becomes active after successful payment confirmation.
+**User-visible outcome:** Admins can enter and save Razorpay credentials from the dashboard; students can pay with Razorpay (or Stripe) when booking sessions or purchasing subscriptions, with bookings/subscriptions confirmed only after successful payment.

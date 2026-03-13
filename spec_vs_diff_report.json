@@ -1,31 +1,79 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-26T13:53:33.286Z",
-  "summary": "The diff addresses REQ-61 by fixing SubscriptionPackagesPage to route live-mode subscriptions through Stripe checkout instead of immediately activating them, fixing PaymentSuccess to use correct localStore imports, and removing Razorpay references from PaymentFailure. The core requirements are largely met, though some acceptance criteria cannot be fully verified from the truncated diff.",
+  "generatedAt": "2026-02-26T14:21:21.720Z",
+  "summary": "The diff implements the four required REQs broadly well. REQ-62 (backend stable storage, setRazorpayConfig, getRazorpayConfig, admin guard) is partially addressed — the RazorpayConfig type and stable var exist, but the diff is truncated so full verification of admin-guard enforcement and keySecret masking for non-admin callers is uncertain. REQ-63 (AdminDashboard Razorpay Setup section) is implemented via RazorpaySetupModal with demo-mode disabling and toast feedback. REQ-64 (checkout integration) is implemented via useRazorpayCheckout.ts and BookingModal/SubscriptionPackagesPage. REQ-65 (i18n) is fully implemented in en.ts and ta.ts. However, several specific ACs have gaps or cannot be confirmed from the truncated diff.",
   "missing_requirements": [
     {
-      "id": "REQ-61",
-      "requirement": "The subscription is only recorded as active after the PaymentSuccess page confirms a valid Stripe session ID.",
-      "reason": "PaymentSuccess.tsx is described as 'verifies Stripe session status and activates subscriptions' and 'fixed imports', but the actual code content is not shown in the diff. It cannot be confirmed from the truncated diff that the session verification logic correctly gates subscription activation on a confirmed Stripe session ID.",
+      "id": "REQ-62",
+      "requirement": "Config must persist across canister upgrades via stable storage; getRazorpayConfig must return keySecret omitted or masked for non-admin callers",
+      "reason": "The backend diff shows `var razorpayConfig : ?RazorpayConfig = null` as a regular mutable var, not declared as `stable`. Stable storage persistence requires the `stable` keyword in Motoko. The diff is also truncated so keySecret masking logic for non-admin callers in getRazorpayConfig cannot be confirmed.",
       "evidence": [
-        "frontend/src/pages/PaymentSuccess.tsx"
+        "backend/main.mo"
+      ]
+    },
+    {
+      "id": "REQ-63",
+      "requirement": "All Razorpay UI text in the admin config form must use t('razorpay.*') calls rather than hardcoded strings",
+      "reason": "RazorpaySetupModal.tsx uses hardcoded strings such as 'Razorpay Setup', 'Key ID', 'Key Secret', 'Razorpay configuration is disabled in demo mode.', and 'Save Razorpay Config' rather than t('razorpay.*') i18n calls.",
+      "evidence": [
+        "frontend/src/components/RazorpaySetupModal.tsx"
+      ]
+    },
+    {
+      "id": "REQ-64",
+      "requirement": "If neither gateway is configured, the UI prompts the admin to configure a payment method",
+      "reason": "While the diff includes a noGateway string in i18n and BookingModal/SubscriptionPackagesPage check hasAnyGateway, the diff is truncated so it cannot be confirmed that a visible admin prompt is rendered when no gateway is configured.",
+      "evidence": [
+        "frontend/src/components/BookingModal.tsx",
+        "frontend/src/pages/SubscriptionPackagesPage.tsx"
+      ]
+    },
+    {
+      "id": "REQ-65",
+      "requirement": "All Razorpay UI text in the checkout flow uses t('razorpay.*') calls rather than hardcoded strings",
+      "reason": "useRazorpayCheckout.ts uses hardcoded strings like 'Razorpay is not configured. Please contact the administrator.', 'Failed to load Razorpay checkout script.', and 'Payment was cancelled.' instead of t('razorpay.*') i18n calls.",
+      "evidence": [
+        "frontend/src/hooks/useRazorpayCheckout.ts"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Removal of Razorpay error handling and messaging from PaymentFailure page",
-      "reason": "While the constraints require Stripe-only payment references, REQ-61 does not explicitly request modifications to PaymentFailure.tsx. The build request non-goals state 'Modifying the Stripe backend integration or PaymentSuccess verification logic unless directly needed to fix this bug', and PaymentFailure is similarly out of explicit scope for REQ-61, making this an unrequested change.",
+      "description": "PaymentFailure page updated to remove all Razorpay error handling, showing only Stripe-branded failure messaging",
+      "reason": "The file summary explicitly states Razorpay error handling was removed from PaymentFailure.tsx. The build request requires Razorpay to be additive and coexist with Stripe; stripping Razorpay context from the failure page was not requested.",
       "evidence": [
         "frontend/src/pages/PaymentFailure.tsx"
       ]
+    },
+    {
+      "description": "DemoPage updated to describe Stripe as the exclusive payment gateway with all Razorpay mentions removed",
+      "reason": "The file summary states the DemoPage Payments step was changed to describe Stripe as the exclusive gateway. While the non-goals say not to add Razorpay to the demo walkthrough, actively re-describing Stripe as exclusive was not requested.",
+      "evidence": [
+        "frontend/src/pages/DemoPage.tsx"
+      ]
+    },
+    {
+      "description": "usdCentsToPaise conversion utility with a hardcoded 1 USD to 83 INR exchange rate",
+      "reason": "The build request does not specify any USD-to-INR conversion utility or exchange rate logic. This is extra functionality not requested in any REQ.",
+      "evidence": [
+        "frontend/src/utils/paymentGateway.ts"
+      ]
     }
   ],
-  "confidence": 0.65,
+  "confidence": 0.62,
   "changed_files": [
+    "backend/main.mo",
     "frontend-file-summaries.txt",
+    "frontend/src/components/BookingModal.tsx",
+    "frontend/src/components/RazorpaySetupModal.tsx",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/hooks/useRazorpayCheckout.ts",
+    "frontend/src/i18n/en.ts",
+    "frontend/src/i18n/ta.ts",
+    "frontend/src/pages/AdminDashboard.tsx",
     "frontend/src/pages/SubscriptionPackagesPage.tsx",
+    "frontend/src/utils/paymentGateway.ts",
     "project_state.json"
   ]
 }

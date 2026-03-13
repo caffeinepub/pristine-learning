@@ -1,23 +1,23 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 37,
+  "projectStateVersion": 39,
   "summary": "PRISTINE LEARNING — a global online tutoring marketplace connecting teachers and students worldwide. Features three user roles (Admin, Teacher, Student), teacher profile auto-generation from Google Sheets, Zoom & Google Classroom integration, Stripe & Razorpay payments with 90/10 revenue split, AI study assistant supporting international curricula, demo lesson system, in-app messaging, affiliate/referral system, subscription packages, blog, and SEO optimization. Built with Next.js, Node.js/Express, PostgreSQL, scalable to 100,000 users on AWS/Vercel.",
   "architectural_notes": [
     "Tech stack: Next.js frontend, Node.js/Express backend, PostgreSQL database, hosted on AWS or Vercel",
     "Scalability target: 100,000 concurrent users with secure cloud infrastructure",
     "Video: Zoom SDK primary, with option for in-platform video sessions",
     "Payments: Stripe + Razorpay dual gateway; commission logic server-side only",
-    "i18n: Bilingual support (Tamil + English) via user-selectable language switcher; all UI text must support both languages"
+    "i18n: Bilingual support (Tamil + English) via user-selectable language switcher; all UI text must support both languages",
+    "Payments: Stripe + Razorpay dual gateway re-enabled; Razorpay credentials configurable by admin via secure admin settings panel"
   ],
   "known_issues": [
-    "Razorpay payment gateway is not working — reported by user in Version 6",
     "Subscription page missing 'unlimited sessions' display for Premium tier — reported in Version 9",
     "Production URL appears to show 'demo' instead of the live production URL — reported in Version 10",
     "TeacherSearchPage crashes with '<Select.Item /> must have a value prop that is not an empty string' error — reported in Version 12",
     "Homepage displays duplicate headers — reported in Version 15",
     "Subscription activates without triggering payment — clicking Subscribe bypasses the payment flow entirely (reported in Version 17)"
   ],
-  "isFixRequest": true,
+  "isFixRequest": false,
   "existing_features": [
     {
       "id": "feature-implement-three-user-roles-admin-teacher-and-student-stored-in-the-backend-with-role-based-access-control-each-role-must-have-its-own-dedicated-dashboard-view-on-the-frontend-registration-and-login-must-support-internet-identity-oauth-equivalent-on-icp-and-email-password-authentication",
@@ -280,6 +280,30 @@
       "title": "Fix the bug in SubscriptionPackagesPage where clicking a 'Subscribe' button activates the subscription immediately without initiating a Stripe payment flow. The subscription must NOT be activated or recorded in the local store until a successful Stripe checkout session is confirmed. The correct flow is: (1) user clicks Subscribe, (2) app initiates a Stripe checkout session (or shows Stripe configuration prompt if not configured), (3) user completes payment on Stripe, (4) PaymentSuccess page confirms the session and only then activates the subscription. Remove any code path that writes a subscription record to localStorage or marks a plan as active before payment confirmation.",
       "reqIds": [
         "REQ-61"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-razorpay-setup-section-inside-the-admindashboard-system-configuration-tab-or-create-one-if-absent-the-section-must-include-a-form-with-two-fields-key-id-text-input-and-key-secret-password-input-masked-and-a-save-razorpay-config-button-that-calls-the-backend-setrazorpayconfig-function-on-success-show-a-confirmation-toast-on-failure-show-an-error-toast-this-form-is-only-accessible-to-authenticated-admins-and-must-be-fully-disabled-in-demo-mode",
+      "title": "Add a 'Razorpay Setup' section inside the AdminDashboard System Configuration tab (or create one if absent). The section must include a form with two fields — 'Key ID' (text input) and 'Key Secret' (password input, masked) — and a 'Save Razorpay Config' button that calls the backend `setRazorpayConfig` function. On success, show a confirmation toast. On failure, show an error toast. This form is only accessible to authenticated admins and must be fully disabled in demo mode.",
+      "reqIds": [
+        "REQ-63"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-re-integrate-razorpay-checkout-as-an-official-payment-option-alongside-stripe-for-session-bookings-and-subscription-purchases-on-the-frontend-when-a-student-proceeds-to-pay-fetch-the-active-payment-gateway-config-from-the-backend-if-razorpay-is-configured-keyid-present-offer-razorpay-checkout-using-the-stored-keyid-if-stripe-is-configured-offer-stripe-checkout-if-both-are-configured-default-to-stripe-with-razorpay-as-a-secondary-option-load-the-razorpay-checkout-script-dynamically-https-checkout-razorpay-com-v1-checkout-js-upon-successful-razorpay-payment-record-the-transaction-in-the-backend-booking-confirmed-10-commission-90-to-teacher-wallet-mirroring-the-existing-stripe-post-payment-logic",
+      "title": "Re-integrate Razorpay checkout as an official payment option alongside Stripe for session bookings and subscription purchases. On the frontend, when a student proceeds to pay, fetch the active payment gateway config from the backend: if Razorpay is configured (keyId present), offer Razorpay checkout using the stored keyId; if Stripe is configured, offer Stripe checkout; if both are configured, default to Stripe with Razorpay as a secondary option. Load the Razorpay checkout script dynamically (https://checkout.razorpay.com/v1/checkout.js). Upon successful Razorpay payment, record the transaction in the backend (booking confirmed, 10% commission, 90% to teacher wallet) mirroring the existing Stripe post-payment logic.",
+      "reqIds": [
+        "REQ-64"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-razorpay-payment-references-back-into-the-i18n-translation-files-en-ts-and-ta-ts-under-a-razorpay-namespace-covering-setup-form-labels-key-id-key-secret-save-razorpay-config-status-messages-razorpay-configured-successfully-failed-to-save-razorpay-config-and-checkout-ui-copy-pay-with-razorpay-use-the-existing-i18n-pattern-from-frontend-src-i18n-en-ts-and-frontend-src-i18n-ta-ts",
+      "title": "Add Razorpay payment references back into the i18n translation files (en.ts and ta.ts) under a `razorpay` namespace, covering: setup form labels ('Key ID', 'Key Secret', 'Save Razorpay Config'), status messages ('Razorpay configured successfully', 'Failed to save Razorpay config'), and checkout UI copy ('Pay with Razorpay'). Use the existing i18n pattern from frontend/src/i18n/en.ts and frontend/src/i18n/ta.ts.",
+      "reqIds": [
+        "REQ-65"
       ],
       "version": 1
     }
@@ -614,6 +638,20 @@
       "summary": "Extend the existing AdminDashboard Withdrawals tab to include 'Approve' and 'Reject' action buttons for each pending withdrawal request, calling `approveWithdrawal` and `rejectWithdrawal` respectively. The Reject action must prompt the admin for a rejection reason before submitting. Both actions must be disabled in demo mode.",
       "reqIds": [
         "REQ-60"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-55",
+      "summary": "Re-add Razorpay as an official payment gateway alongside Stripe. Admin can configure Razorpay credentials (key ID and secret) via a username/password-protected admin settings panel. Razorpay checkout must be supported for session and subscription payments.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-56",
+      "summary": "Extend the backend actor to store Razorpay configuration in stable state. Add an admin-only function `setRazorpayConfig(keyId: Text, keySecret: Text) : async Result` that saves the Razorpay key ID and secret, and a function `getRazorpayConfig() : async RazorpayConfig` that returns the stored config (secret masked or omitted for non-admin callers). Guard both functions so only a principal with the #admin role can write config.",
+      "reqIds": [
+        "REQ-62"
       ],
       "status": "pending"
     }

@@ -14,8 +14,6 @@ import Runtime "mo:core/Runtime";
 import Float "mo:core/Float";
 import Int "mo:core/Int";
 
-// NO MIGRATION NEEDED
-
 actor {
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
@@ -41,6 +39,12 @@ actor {
     commissionRateBps : Nat;
     stripeSecretKey : Text;
     allowedCountries : [Text];
+  };
+
+  // Razorpay configuration type
+  public type RazorpayConfig = {
+    keyId : Text;
+    keySecret : Text;
   };
 
   // User profile type
@@ -158,6 +162,8 @@ actor {
     allowedCountries = [];
   };
 
+  var razorpayConfig : ?RazorpayConfig = null;
+
   // Stripe payment integration
   var configuration : ?Stripe.StripeConfiguration = null;
 
@@ -196,6 +202,33 @@ actor {
       Runtime.trap("Unauthorized: Only users can create checkout sessions");
     };
     await Stripe.createCheckoutSession(getStripeConfiguration(), caller, items, successUrl, cancelUrl, transform);
+  };
+
+  // ------------- Razorpay Functions ---------------
+
+  /// Sets the Razorpay configuration (admin-only).
+  public shared ({ caller }) func setRazorpayConfig(keyId : Text, keySecret : Text) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
+    razorpayConfig := ?{ keyId; keySecret };
+  };
+
+  /// Returns the Razorpay configuration with the secret masked for non-admin callers.
+  public query ({ caller }) func getRazorpayConfig() : async ?RazorpayConfig {
+    switch (razorpayConfig) {
+      case (null) { null };
+      case (?config) {
+        if (AccessControl.isAdmin(accessControlState, caller)) {
+          ?config;
+        } else {
+          ?{
+            keyId = config.keyId;
+            keySecret = "***";
+          };
+        };
+      };
+    };
   };
 
   // ------------- Demo Purposes Function ---------------

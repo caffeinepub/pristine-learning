@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { userProfileStore, bookingsStore, notificationsStore, type Booking } from '../lib/localStore';
+import { useIsStripeConfigured, useGetRazorpayConfig } from '../hooks/useQueries';
+import { useRazorpayCheckout } from '../hooks/useRazorpayCheckout';
+import { getAvailablePaymentGateways, inrToPaise } from '../utils/paymentGateway';
+import { isDemoMode } from '../components/DemoModeButton';
+import { useActor } from '../hooks/useActor';
 import { useTimezone } from '../hooks/useTimezone';
 import { formatTime } from '../utils/formatTime';
 import { toast } from 'sonner';
@@ -9,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, Globe, Video, CheckCircle } from 'lucide-react';
+import { Calendar, Clock, Globe, Video, CheckCircle, CreditCard, Loader2, AlertCircle } from 'lucide-react';
 import type { TeacherProfile } from '../backend';
 
 interface Props {
@@ -31,15 +36,31 @@ function generateId(): string {
 
 export default function BookingModal({ open, onClose, teacher, teacherId, defaultSessionType = 'paid' }: Props) {
   const { identity } = useInternetIdentity();
+  const { actor } = useActor();
   const { timezone, abbr } = useTimezone();
   const [sessionType, setSessionType] = useState<'demo' | 'paid'>(defaultSessionType);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState(false);
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(false);
+  const [paymentGateway, setPaymentGateway] = useState<'stripe' | 'razorpay' | null>(null);
 
+  const { data: stripeConfigured, isLoading: stripeLoading } = useIsStripeConfigured();
+  const { data: razorpayConfig, isLoading: razorpayLoading } = useGetRazorpayConfig();
+  const { initiatePayment, isLoading: razorpayCheckoutLoading } = useRazorpayCheckout();
+
+  const demoMode = isDemoMode();
   const principalId = identity?.getPrincipal().toString() || '';
   const profile = principalId ? userProfileStore.get(principalId) : null;
+
+  const isLoadingGateways = stripeLoading || razorpayLoading;
+  const availableGateways = getAvailablePaymentGateways(
+    !!stripeConfigured,
+    razorpayConfig?.keyId
+  );
+  const hasStripe = availableGateways.includes('stripe');
+  const hasRazorpay = availableGateways.includes('razorpay');
+  const hasAnyGateway = availableGateways.length > 0;
 
   // Generate time slots for next 7 days
   const slots = teacher.availabilitySlots.length > 0
@@ -61,33 +82,15 @@ export default function BookingModal({ open, onClose, teacher, teacherId, defaul
   }
 
   const amount = sessionType === 'demo' ? Math.min(Number(teacher.hourlyRate) * 0.2, 15) : Number(teacher.hourlyRate);
+  const amountInr = Math.round(amount * 83); // rough USD→INR conversion
 
-  const handleConfirm = async () => {
-    if (!selectedSlot || !principalId) return;
-    setLoading(true);
-
-    const newBooking: Booking = {
-      id: generateId(),
-      teacherId,
-      teacherName: teacher.name,
-      studentId: principalId,
-      studentName: profile?.name || 'Student',
-      sessionType,
-      scheduledTime: selectedSlot,
-      timezone,
-      status: sessionType === 'demo' ? 'confirmed' : 'pending',
-      meetingLink: generateMeetingLink(),
-      amount,
-    };
-
+  const saveBookingAndNotify = (newBooking: Booking) => {
     bookingsStore.save(newBooking);
-
-    // Notifications
     notificationsStore.add({
       id: `notif_${Date.now()}`,
       userId: principalId,
       title: 'Booking Confirmed!',
-      message: `Your ${sessionType} session with ${teacher.name} is booked for ${formatTime(selectedSlot, timezone)}.`,
+      message: `Your ${sessionType} session with ${teacher.name} is booked for ${formatTime(selectedSlot!, timezone)}.`,
       read: false,
       createdAt: new Date().toISOString(),
       type: 'booking',
@@ -101,19 +104,121 @@ export default function BookingModal({ open, onClose, teacher, teacherId, defaul
       createdAt: new Date().toISOString(),
       type: 'booking',
     });
-
     setBooking(newBooking);
     setConfirmed(true);
-    setLoading(false);
     toast.success('Session booked successfully!');
+  };
+
+  const handleConfirmFreeOrDemo = async () => {
+    if (!selectedSlot || !principalId) return;
+    setLoading(true);
+
+    const newBooking: Booking = {
+      id: generateId(),
+      teacherId,
+      teacherName: teacher.name,
+      studentId: principalId,
+      studentName: profile?.name || 'Student',
+      sessionType,
+      scheduledTime: selectedSlot,
+      timezone,
+      status: 'confirmed',
+      meetingLink: generateMeetingLink(),
+      amount,
+    };
+
+    saveBookingAndNotify(newBooking);
+    setLoading(false);
+  };
+
+  const handleStripePayment = async () => {
+    if (!selectedSlot || !principalId || !actor) return;
+    if (!stripeConfigured) {
+      toast.error('Stripe is not configured. Please contact the administrator.');
+      return;
+    }
+
+    setLoading(true);
+    setPaymentGateway('stripe');
+
+    try {
+      const baseUrl = `${window.location.protocol}//${window.location.host}`;
+      const successUrl = `${baseUrl}/payment-success?booking=${generateId()}`;
+      const cancelUrl = `${baseUrl}/payment-failure`;
+
+      const sessionJson = await actor.createCheckoutSession(
+        [
+          {
+            productName: `Session with ${teacher.name}`,
+            currency: 'inr',
+            quantity: BigInt(1),
+            priceInCents: BigInt(inrToPaise(amountInr)),
+            productDescription: `${sessionType} session - ${teacher.subjects.join(', ')}`,
+          },
+        ],
+        successUrl,
+        cancelUrl
+      );
+
+      const session = JSON.parse(sessionJson);
+      if (!session?.url) throw new Error('Stripe session missing URL');
+      window.location.href = session.url;
+    } catch (err) {
+      toast.error('Failed to initiate Stripe checkout. Please try again.');
+      setLoading(false);
+      setPaymentGateway(null);
+    }
+  };
+
+  const handleRazorpayPayment = async () => {
+    if (!selectedSlot || !principalId) return;
+
+    setLoading(true);
+    setPaymentGateway('razorpay');
+
+    await initiatePayment({
+      amount: inrToPaise(amountInr),
+      currency: 'INR',
+      name: 'Pristine Learning',
+      description: `Session with ${teacher.name} - ${teacher.subjects.join(', ')}`,
+      onSuccess: (response) => {
+        const newBooking: Booking = {
+          id: generateId(),
+          teacherId,
+          teacherName: teacher.name,
+          studentId: principalId,
+          studentName: profile?.name || 'Student',
+          sessionType,
+          scheduledTime: selectedSlot!,
+          timezone,
+          status: 'confirmed',
+          meetingLink: generateMeetingLink(),
+          amount,
+        };
+        saveBookingAndNotify(newBooking);
+        setLoading(false);
+        setPaymentGateway(null);
+      },
+      onFailure: (error) => {
+        if (error !== 'Payment was cancelled.') {
+          toast.error(`Razorpay payment failed: ${error}`);
+        }
+        setLoading(false);
+        setPaymentGateway(null);
+      },
+    });
   };
 
   const handleClose = () => {
     setConfirmed(false);
     setSelectedSlot(null);
     setBooking(null);
+    setPaymentGateway(null);
     onClose();
   };
+
+  const isPaidSession = sessionType === 'paid';
+  const needsPayment = isPaidSession && !demoMode;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -144,7 +249,7 @@ export default function BookingModal({ open, onClose, teacher, teacherId, defaul
                     >
                       <p className="font-semibold text-sm capitalize">{type === 'demo' ? '🎯 Demo' : '📚 Paid'}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {type === 'demo' ? `$${amount.toFixed(0)} intro session` : `$${amount}/hr`}
+                        {type === 'demo' ? `$${Math.min(Number(teacher.hourlyRate) * 0.2, 15).toFixed(0)} intro session` : `$${Number(teacher.hourlyRate)}/hr`}
                       </p>
                     </button>
                   ))}
@@ -159,9 +264,7 @@ export default function BookingModal({ open, onClose, teacher, teacherId, defaul
 
               {/* Time slots */}
               <div>
-                <p className="text-sm font-medium mb-2 flex items-center gap-1.5">
-                  <Calendar className="w-4 h-4" /> Available Slots
-                </p>
+                <p className="text-sm font-medium mb-2">Select a Time Slot</p>
                 <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
                   {timeSlots.map(slot => (
                     <button
@@ -169,7 +272,7 @@ export default function BookingModal({ open, onClose, teacher, teacherId, defaul
                       onClick={() => setSelectedSlot(slot.iso)}
                       className={`p-2.5 rounded-lg border text-xs text-left transition-all ${
                         selectedSlot === slot.iso
-                          ? 'border-primary bg-primary/10 text-primary font-medium'
+                          ? 'border-primary bg-primary/5 text-primary font-medium'
                           : 'border-border hover:border-primary/40'
                       }`}
                     >
@@ -180,49 +283,163 @@ export default function BookingModal({ open, onClose, teacher, teacherId, defaul
                 </div>
               </div>
 
-              <Button
-                onClick={handleConfirm}
-                disabled={!selectedSlot || loading || !principalId}
-                className="w-full btn-primary h-11"
-              >
-                {loading ? 'Booking…' : !principalId ? 'Login to Book' : `Confirm ${sessionType === 'demo' ? 'Demo' : 'Session'}`}
+              {/* Price summary */}
+              <div className="flex items-center justify-between bg-muted/50 rounded-lg px-4 py-3">
+                <span className="text-sm text-muted-foreground">Session Fee</span>
+                <span className="font-semibold text-foreground">
+                  ${amount.toFixed(0)} {isPaidSession && '≈ ₹' + amountInr}
+                </span>
+              </div>
+
+              {/* Payment gateway warning for paid sessions */}
+              {needsPayment && !isLoadingGateways && !hasAnyGateway && (
+                <div className="flex items-center gap-2 p-3 rounded-lg border border-destructive/30 bg-destructive/5 text-destructive text-sm">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                  No payment gateway configured. Please contact the administrator.
+                </div>
+              )}
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex flex-col gap-2 pt-2">
+              {!needsPayment ? (
+                // Free / demo session — single confirm button
+                <Button
+                  className="w-full"
+                  onClick={handleConfirmFreeOrDemo}
+                  disabled={!selectedSlot || loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Booking...
+                    </>
+                  ) : (
+                    <>
+                      <Calendar className="w-4 h-4 mr-2" />
+                      {demoMode ? 'Confirm Booking (Demo)' : 'Confirm Booking'}
+                    </>
+                  )}
+                </Button>
+              ) : isLoadingGateways ? (
+                <Button className="w-full" disabled>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Loading payment options...
+                </Button>
+              ) : (
+                <>
+                  {hasStripe && (
+                    <Button
+                      className="w-full"
+                      onClick={handleStripePayment}
+                      disabled={!selectedSlot || loading || razorpayCheckoutLoading}
+                    >
+                      {paymentGateway === 'stripe' && loading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <CreditCard className="w-4 h-4 mr-2" />
+                          Pay with Stripe
+                        </>
+                      )}
+                    </Button>
+                  )}
+
+                  {hasRazorpay && (
+                    <Button
+                      variant={hasStripe ? 'outline' : 'default'}
+                      className="w-full"
+                      onClick={handleRazorpayPayment}
+                      disabled={!selectedSlot || loading || razorpayCheckoutLoading}
+                    >
+                      {(paymentGateway === 'razorpay' && loading) || razorpayCheckoutLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Processing payment...
+                        </>
+                      ) : (
+                        <>
+                          <CreditCard className="w-4 h-4 mr-2" />
+                          Pay with Razorpay
+                        </>
+                      )}
+                    </Button>
+                  )}
+
+                  {!hasAnyGateway && (
+                    <Button className="w-full" disabled>
+                      <AlertCircle className="w-4 h-4 mr-2" />
+                      No Payment Gateway
+                    </Button>
+                  )}
+                </>
+              )}
+
+              <Button variant="ghost" className="w-full" onClick={handleClose} disabled={loading}>
+                Cancel
               </Button>
             </div>
           </>
         ) : (
-          <div className="text-center py-4 space-y-4">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-              <CheckCircle className="w-9 h-9 text-green-600" />
-            </div>
-            <div>
-              <h3 className="font-display text-xl font-bold">Booking Confirmed!</h3>
-              <p className="text-muted-foreground text-sm mt-1">
-                Your {sessionType} session with {teacher.name} is scheduled.
-              </p>
-            </div>
+          // Confirmation screen
+          <>
+            <DialogHeader>
+              <DialogTitle className="font-display flex items-center gap-2 text-green-600">
+                <CheckCircle className="w-5 h-5" />
+                Booking Confirmed!
+              </DialogTitle>
+              <DialogDescription>
+                Your session has been successfully booked.
+              </DialogDescription>
+            </DialogHeader>
+
             {booking && (
-              <div className="bg-muted/50 rounded-xl p-4 text-left space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Date & Time</span>
-                  <span className="font-medium">{formatTime(booking.scheduledTime, timezone)}</span>
+              <div className="space-y-4 py-2">
+                <div className="bg-muted/50 rounded-xl p-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Video className="w-4 h-4 text-primary" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Teacher</p>
+                      <p className="text-sm font-medium">{booking.teacherName}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Clock className="w-4 h-4 text-primary" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Scheduled Time</p>
+                      <p className="text-sm font-medium">{formatTime(booking.scheduledTime, timezone)} ({abbr})</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Calendar className="w-4 h-4 text-primary" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Session Type</p>
+                      <p className="text-sm font-medium capitalize">{booking.sessionType}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Session Type</span>
-                  <Badge variant="secondary" className="capitalize">{booking.sessionType}</Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Meeting Link</span>
-                  <a href={booking.meetingLink} target="_blank" rel="noopener noreferrer"
-                    className="text-primary hover:underline flex items-center gap-1 text-xs">
-                    <Video className="w-3 h-3" /> Join Meeting
+
+                <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+                  <p className="text-xs text-muted-foreground mb-1">Meeting Link</p>
+                  <a
+                    href={booking.meetingLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary underline break-all"
+                  >
+                    {booking.meetingLink}
                   </a>
                 </div>
               </div>
             )}
-            <Button onClick={handleClose} className="w-full btn-primary">
-              Go to Dashboard
+
+            <Button className="w-full" onClick={handleClose}>
+              Done
             </Button>
-          </div>
+          </>
         )}
       </DialogContent>
     </Dialog>

@@ -2,9 +2,62 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-fix-the-bug-in-subscriptionpackagespage-where-clicking-a-subscribe-button-activates-the-subscription-immediately-without-initiating-a-stripe-payment-flow-the-subscription-must-not-be-activated-or-recorded-in-the-local-store-until-a-successful-stripe-checkout-session-is-confirmed-the-correct-flow-is-1-user-clicks-subscribe-2-app-initiates-a-stripe-checkout-session-or-shows-stripe-configuration-prompt-if-not-configured-3-user-completes-payment-on-stripe-4-paymentsuccess-page-confirms-the-session-and-only-then-activates-the-subscription-remove-any-code-path-that-writes-a-subscription-record-to-localstorage-or-marks-a-plan-as-active-before-payment-confirmation",
-      "featureTitle": "Fix the bug in SubscriptionPackagesPage where clicking a 'Subscribe' button activates the subscription immediately without initiating a Stripe payment flow. The subscription must NOT be activated or recorded in the local store until a successful Stripe checkout session is confirmed. The correct flow is: (1) user clicks Subscribe, (2) app initiates a Stripe checkout session (or shows Stripe configuration prompt if not configured), (3) user completes payment on Stripe, (4) PaymentSuccess page confirms the session and only then activates the subscription. Remove any code path that writes a subscription record to localStorage or marks a plan as active before payment confirmation.",
+      "featureId": "feature-add-a-razorpay-setup-section-inside-the-admindashboard-system-configuration-tab-or-create-one-if-absent-the-section-must-include-a-form-with-two-fields-key-id-text-input-and-key-secret-password-input-masked-and-a-save-razorpay-config-button-that-calls-the-backend-setrazorpayconfig-function-on-success-show-a-confirmation-toast-on-failure-show-an-error-toast-this-form-is-only-accessible-to-authenticated-admins-and-must-be-fully-disabled-in-demo-mode",
+      "featureTitle": "Add a 'Razorpay Setup' section inside the AdminDashboard System Configuration tab (or create one if absent). The section must include a form with two fields — 'Key ID' (text input) and 'Key Secret' (password input, masked) — and a 'Save Razorpay Config' button that calls the backend `setRazorpayConfig` function. On success, show a confirmation toast. On failure, show an error toast. This form is only accessible to authenticated admins and must be fully disabled in demo mode.",
       "files": [
+        "frontend/src/components/RazorpaySetupModal.tsx",
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/AdminDashboard.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-63"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-re-integrate-razorpay-checkout-as-an-official-payment-option-alongside-stripe-for-session-bookings-and-subscription-purchases-on-the-frontend-when-a-student-proceeds-to-pay-fetch-the-active-payment-gateway-config-from-the-backend-if-razorpay-is-configured-keyid-present-offer-razorpay-checkout-using-the-stored-keyid-if-stripe-is-configured-offer-stripe-checkout-if-both-are-configured-default-to-stripe-with-razorpay-as-a-secondary-option-load-the-razorpay-checkout-script-dynamically-https-checkout-razorpay-com-v1-checkout-js-upon-successful-razorpay-payment-record-the-transaction-in-the-backend-booking-confirmed-10-commission-90-to-teacher-wallet-mirroring-the-existing-stripe-post-payment-logic",
+      "featureTitle": "Re-integrate Razorpay checkout as an official payment option alongside Stripe for session bookings and subscription purchases. On the frontend, when a student proceeds to pay, fetch the active payment gateway config from the backend: if Razorpay is configured (keyId present), offer Razorpay checkout using the stored keyId; if Stripe is configured, offer Stripe checkout; if both are configured, default to Stripe with Razorpay as a secondary option. Load the Razorpay checkout script dynamically (https://checkout.razorpay.com/v1/checkout.js). Upon successful Razorpay payment, record the transaction in the backend (booking confirmed, 10% commission, 90% to teacher wallet) mirroring the existing Stripe post-payment logic.",
+      "files": [
+        "frontend/src/components/BookingModal.tsx",
+        "frontend/src/hooks/useRazorpayCheckout.ts",
+        "frontend/src/pages/SubscriptionPackagesPage.tsx",
+        "frontend/src/utils/paymentGateway.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-64"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-razorpay-payment-references-back-into-the-i18n-translation-files-en-ts-and-ta-ts-under-a-razorpay-namespace-covering-setup-form-labels-key-id-key-secret-save-razorpay-config-status-messages-razorpay-configured-successfully-failed-to-save-razorpay-config-and-checkout-ui-copy-pay-with-razorpay-use-the-existing-i18n-pattern-from-frontend-src-i18n-en-ts-and-frontend-src-i18n-ta-ts",
+      "featureTitle": "Add Razorpay payment references back into the i18n translation files (en.ts and ta.ts) under a `razorpay` namespace, covering: setup form labels ('Key ID', 'Key Secret', 'Save Razorpay Config'), status messages ('Razorpay configured successfully', 'Failed to save Razorpay config'), and checkout UI copy ('Pay with Razorpay'). Use the existing i18n pattern from frontend/src/i18n/en.ts and frontend/src/i18n/ta.ts.",
+      "files": [
+        "frontend/src/components/BookingModal.tsx",
+        "frontend/src/components/RazorpaySetupModal.tsx",
+        "frontend/src/i18n/en.ts",
+        "frontend/src/i18n/ta.ts",
         "frontend/src/pages/SubscriptionPackagesPage.tsx"
       ],
       "components": [
@@ -19,7 +72,7 @@
         "http-outcalls@3.0.0"
       ],
       "testIds": [
-        "REQ-61"
+        "REQ-65"
       ],
       "confidence": "high"
     }

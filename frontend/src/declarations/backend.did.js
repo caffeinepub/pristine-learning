@@ -92,6 +92,10 @@ export const PlatformConfig = IDL.Record({
   'commissionRateBps' : IDL.Nat,
   'stripeSecretKey' : IDL.Text,
 });
+export const RazorpayConfig = IDL.Record({
+  'keyId' : IDL.Text,
+  'keySecret' : IDL.Text,
+});
 export const StripeSessionStatus = IDL.Variant({
   'completed' : IDL.Record({
     'userPrincipal' : IDL.Opt(IDL.Text),
@@ -195,6 +199,7 @@ export const idlService = IDL.Service({
       ['query'],
     ),
   'getPlatformConfig' : IDL.Func([], [PlatformConfig], ['query']),
+  'getRazorpayConfig' : IDL.Func([], [IDL.Opt(RazorpayConfig)], ['query']),
   'getStripeSessionStatus' : IDL.Func([IDL.Text], [StripeSessionStatus], []),
   'getTeacherProfile' : IDL.Func(
       [IDL.Text],
@@ -220,6 +225,7 @@ export const idlService = IDL.Service({
   'rejectWithdrawal' : IDL.Func([IDL.Text, IDL.Text], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'setPlatformCommissionRate' : IDL.Func([IDL.Nat], [], []),
+  'setRazorpayConfig' : IDL.Func([IDL.Text, IDL.Text], [], []),
   'setStripeConfig' : IDL.Func([IDL.Text, IDL.Vec(IDL.Text)], [], []),
   'setStripeConfiguration' : IDL.Func([StripeConfiguration], [], []),
   'setUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
@@ -323,6 +329,10 @@ export const idlFactory = ({ IDL }) => {
     'commissionRateBps' : IDL.Nat,
     'stripeSecretKey' : IDL.Text,
   });
+  const RazorpayConfig = IDL.Record({
+    'keyId' : IDL.Text,
+    'keySecret' : IDL.Text,
+  });
   const StripeSessionStatus = IDL.Variant({
     'completed' : IDL.Record({
       'userPrincipal' : IDL.Opt(IDL.Text),
@@ -423,6 +433,7 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'getPlatformConfig' : IDL.Func([], [PlatformConfig], ['query']),
+    'getRazorpayConfig' : IDL.Func([], [IDL.Opt(RazorpayConfig)], ['query']),
     'getStripeSessionStatus' : IDL.Func([IDL.Text], [StripeSessionStatus], []),
     'getTeacherProfile' : IDL.Func(
         [IDL.Text],
@@ -448,6 +459,7 @@ export const idlFactory = ({ IDL }) => {
     'rejectWithdrawal' : IDL.Func([IDL.Text, IDL.Text], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'setPlatformCommissionRate' : IDL.Func([IDL.Nat], [], []),
+    'setRazorpayConfig' : IDL.Func([IDL.Text, IDL.Text], [], []),
     'setStripeConfig' : IDL.Func([IDL.Text, IDL.Vec(IDL.Text)], [], []),
     'setStripeConfiguration' : IDL.Func([StripeConfiguration], [], []),
     'setUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
